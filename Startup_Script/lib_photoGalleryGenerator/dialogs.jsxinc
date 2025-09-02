@@ -74,14 +74,15 @@ function showGalleryConfigDialog() {
     function updateLayoutControlsVisibility() {
         var selectedLayout = typeDropdown.selection ? typeDropdown.selection.text : 'Grid';
         var isGridLayout = selectedLayout === 'Grid';
+        var isMasonryLayout = selectedLayout === 'Masonry';
         var isCarouselLayout = selectedLayout === 'Carousel';
         
         // Show/hide grid-specific controls
-        gridGroup.visible = isGridLayout;
-        containerGroup.visible = isGridLayout;
+        gridGroup.enabled = isGridLayout || isMasonryLayout;
+        containerGroup.enabled = isGridLayout;
         
         // Show/hide carousel-specific controls
-        carouselGroup.visible = isCarouselLayout;
+        carouselGroup.enabled = isCarouselLayout;
     }
 
     // Set initial visibility
@@ -132,6 +133,9 @@ function showGalleryConfigDialog() {
 
     var responsiveCheckbox = optionsGroup.add('checkbox', undefined, 'Responsive design');
     responsiveCheckbox.value = true;
+
+    var embedCheckbox = optionsGroup.add('checkbox', undefined, 'Embed CSS/JS in HTML (single file)');
+    embedCheckbox.value = false;
 
     // Buttons (using standard dialog button system)
     dialog.cancelBtn = dialog.add('button', undefined, 'Cancel', {
@@ -242,6 +246,7 @@ function showGalleryConfigDialog() {
             config.outputPath = pathInput.text;
             config.includeLightbox = lightboxCheckbox.value;
             config.responsive = responsiveCheckbox.value;
+            config.embedAssets = embedCheckbox.value;
 
             validateConfig(config);
 
@@ -326,11 +331,17 @@ function showCompletionMessage(outputFolder, imageCount, config) {
     var processMessage = '\nImages processed: ' + imageCount + '\n\n';
     processMessage += 'Output folder: ' + outputFolder.fsName + '\n\n';
     processMessage += 'Files created:\n';
-    processMessage += '  - index.html - Main gallery page\n';
-    processMessage += '  - style.css - Gallery styling\n';
-    processMessage += '  - script.js - Interactive features\n';
-    processMessage += '  - images/ - Optimized images folder\n';
-    processMessage += '  - README.txt - Gallery documentation';
+    if (config && config.embedAssets) {
+        processMessage += '  - index.html - Self-contained gallery page (CSS and JS embedded)\n';
+        processMessage += '  - images/ - Optimized images folder\n';
+        processMessage += '  - README.txt - Gallery documentation';
+    } else {
+        processMessage += '  - index.html - Main gallery page\n';
+        processMessage += '  - style.css - Gallery styling\n';
+        processMessage += '  - script.js - Interactive features\n';
+        processMessage += '  - images/ - Optimized images folder\n';
+        processMessage += '  - README.txt - Gallery documentation';
+    }
     var processMessageUI = messageGroup.add('statictext', undefined, processMessage, {
         multiline: true
     });
@@ -471,7 +482,7 @@ function showAboutDialog() {
     infoGroup.orientation = 'column';
     infoGroup.alignChildren = ['left', 'top'];
 
-    infoGroup.add('statictext', undefined, 'Photo Gallery Generator v1.0');
+    infoGroup.add('statictext', undefined, 'Photo Gallery Generator v{{VERSION}}');
     infoGroup.add('statictext', undefined, 'Adobe Bridge ExtendScript Application');
     infoGroup.add('statictext', undefined, '');
     infoGroup.add('statictext', undefined, 'Generates responsive HTML photo galleries');

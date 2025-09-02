@@ -157,16 +157,19 @@ function createDetailedError(operation, filePath, originalError, diagnostics) {
 // Main function to generate all gallery files
 function generateGalleryHTML(outputFolder, processedImages, config) {
     try {
-        // Generate HTML file
+        // Generate HTML file (always required)
         generateHTMLFile(outputFolder, processedImages, config);
 
-        // Generate CSS file
-        generateCSSFile(outputFolder, config);
+        // Generate separate CSS and JS files only if not embedding
+        if (!config.embedAssets) {
+            // Generate CSS file
+            generateCSSFile(outputFolder, config);
 
-        // Generate JavaScript file
-        generateJSFile(outputFolder, processedImages, config);
+            // Generate JavaScript file
+            generateJSFile(outputFolder, processedImages, config);
+        }
 
-        // Generate README file
+        // Generate README file (always helpful)
         generateReadmeFile(outputFolder, processedImages, config);
 
     } catch (error) {
@@ -188,7 +191,16 @@ function generateHTMLFile(outputFolder, processedImages, config) {
             throw new Error(detailedError);
         }
 
-    var htmlContent = getHTMLTemplate(processedImages, config);
+    // Generate embedded CSS and JS if embedding is enabled
+    var embeddedCSS = null;
+    var embeddedJS = null;
+    
+    if (config.embedAssets) {
+        embeddedCSS = getCSSTemplate(config);
+        embeddedJS = getJSTemplate(processedImages, config);
+    }
+    
+    var htmlContent = getHTMLTemplate(processedImages, config, embeddedCSS, embeddedJS);
         if (!htmlContent || htmlContent.length === 0) {
             var diagnostics = getFileSystemDiagnostics(filePath, operation);
             var detailedError = createDetailedError(operation, filePath, new Error('No HTML content generated'), diagnostics);
@@ -674,7 +686,7 @@ function generateReadmeFile(outputFolder, processedImages, config) {
 }
 
 // HTML template
-function getHTMLTemplate(processedImages, config) {
+function getHTMLTemplate(processedImages, config, embeddedCSS, embeddedJS) {
     var galleryItems = '';
     for (var i = 0; i < processedImages.length; i++) {
         var image = processedImages[i];
@@ -708,13 +720,27 @@ function getHTMLTemplate(processedImages, config) {
                           '</div>\n';
     }
 
+    // Determine whether to embed assets or link to external files
+    var cssLink = '';
+    var jsScript = '';
+    
+    if (config.embedAssets && embeddedCSS && embeddedJS) {
+        // Embed CSS and JS directly in the HTML
+        cssLink = '    <style>\n' + embeddedCSS + '\n    </style>';
+        jsScript = '    <script>\n' + embeddedJS + '\n    </script>';
+    } else {
+        // Use external files
+        cssLink = '    <link rel="stylesheet" href="style.css">';
+        jsScript = '    <script src="script.js"></script>';
+    }
+
     return '<!DOCTYPE html>\n' +
            '<html lang="en">\n' +
            '<head>\n' +
            '    <meta charset="UTF-8">\n' +
            '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
            '    <title>' + escapeHtml(config.galleryName || 'Photo Gallery') + '</title>\n' +
-           '    <link rel="stylesheet" href="style.css">\n' +
+           cssLink + '\n' +
            '</head>\n' +
            '<body>\n' +
            '    <div class="gallery-container">\n' +
@@ -728,7 +754,7 @@ function getHTMLTemplate(processedImages, config) {
            '\n' +
            lightboxHTML +
            '\n' +
-           '    <script src="script.js"></script>\n' +
+           jsScript + '\n' +
            '</body>\n' +
            '</html>';
 }
@@ -1937,11 +1963,17 @@ function getReadmeTemplate(processedImages, config) {
            '\n' +
            '## Files\n' +
            '\n' +
-           '- `index.html` - Main gallery page\n' +
-           '- `style.css` - Gallery styling\n' +
-           '- `script.js` - Interactive features\n' +
-           '- `images/` - Optimized images\n' +
-           '- `README.txt` - This documentation\n' +
+           (config.embedAssets ? 
+               '- `index.html` - Self-contained gallery page (CSS and JS embedded)\n' +
+               '- `images/` - Optimized images\n' +
+               '- `README.txt` - This documentation\n'
+               :
+               '- `index.html` - Main gallery page\n' +
+               '- `style.css` - Gallery styling\n' +
+               '- `script.js` - Interactive features\n' +
+               '- `images/` - Optimized images\n' +
+               '- `README.txt` - This documentation\n'
+           ) +
            '\n' +
            '## Usage\n' +
            '\n' +

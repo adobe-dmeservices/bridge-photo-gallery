@@ -1,9 +1,9 @@
 /**
- * Photo Gallery Generator v1.0
+ * Photo Gallery Generator v{{VERSION}}
  * Adobe Bridge ExtendScript for generating HTML photo galleries
  *
  * @author Bridge Photo Gallery Generator
- * @version 1.0
+ * @version {{VERSION}}
  * @requires Adobe Bridge
  */
 

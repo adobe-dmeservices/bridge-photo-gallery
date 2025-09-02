@@ -139,30 +139,76 @@ function updateMxiVersion() {
 }
 
 /**
- * Update version placeholders in JavaScript files
+ * Recursively find all files with specified extensions
+ */
+function findFilesRecursively(dir, extensions) {
+    let files = [];
+    
+    if (!fs.existsSync(dir)) {
+        return files;
+    }
+    
+    const items = fs.readdirSync(dir);
+    
+    for (const item of items) {
+        const fullPath = path.join(dir, item);
+        const stat = fs.statSync(fullPath);
+        
+        if (stat.isDirectory()) {
+            files = files.concat(findFilesRecursively(fullPath, extensions));
+        } else if (stat.isFile()) {
+            const ext = path.extname(item).toLowerCase();
+            if (extensions.includes(ext)) {
+                files.push(fullPath);
+            }
+        }
+    }
+    
+    return files;
+}
+
+/**
+ * Update version placeholders in all relevant files
  */
 function updateJavaScriptVersions() {
-    console.log('🔄 Updating JavaScript file versions...');
+    console.log('🔄 Updating version placeholders in all files...');
     
     try {
-        const htmlGeneratorPath = path.join(config.zxpTempDir, 'Startup_Script', 'lib_photoGalleryGenerator', 'htmlGenerator.jsxinc');
+        // Find all JavaScript/JSX files that might contain version placeholders
+        const extensionsToCheck = ['.jsx', '.jsxinc', '.js'];
+        const startupScriptDir = path.join(config.zxpTempDir, 'Startup_Script');
+        const filesToUpdate = findFilesRecursively(startupScriptDir, extensionsToCheck);
         
-        if (fs.existsSync(htmlGeneratorPath)) {
+        let filesUpdated = 0;
+        let filesScanned = 0;
+        
+        filesToUpdate.forEach(filePath => {
+            filesScanned++;
+            
             // Read the file
-            let content = fs.readFileSync(htmlGeneratorPath, 'utf8');
+            let content = fs.readFileSync(filePath, 'utf8');
             
-            // Replace version placeholder
-            content = content.replace(/{{VERSION}}/g, config.version);
-            
-            // Write the updated content back
-            fs.writeFileSync(htmlGeneratorPath, content, 'utf8');
-            
-            console.log(`✅ Updated version placeholders to ${config.version} in htmlGenerator.jsxinc`);
-        } else {
-            console.log('⚠️  htmlGenerator.jsxinc not found, skipping version update');
+            // Check if it contains version placeholders
+            if (content.includes('{{VERSION}}')) {
+                // Replace version placeholder
+                content = content.replace(/\{\{VERSION\}\}/g, config.version);
+                
+                // Write the updated content back
+                fs.writeFileSync(filePath, content, 'utf8');
+                
+                const relativePath = path.relative(config.zxpTempDir, filePath);
+                console.log(`✅ Updated version placeholders to ${config.version} in ${relativePath}`);
+                filesUpdated++;
+            }
+        });
+        
+        console.log(`📊 Scanned ${filesScanned} files, updated ${filesUpdated} file(s) with version placeholders`);
+        
+        if (filesUpdated === 0 && filesScanned > 0) {
+            console.log('ℹ️  No version placeholders found in any files');
         }
     } catch (error) {
-        console.error('❌ Error updating JavaScript versions:', error.message);
+        console.error('❌ Error updating version placeholders:', error.message);
         process.exit(1);
     }
 }
@@ -340,7 +386,7 @@ function main() {
             // Step 4: Update .mxi file version
             updateMxiVersion();
             
-            // Step 5: Update JavaScript file versions
+            // Step 5: Update version placeholders in source files
             updateJavaScriptVersions();
             
             console.log('✅ Files prepared in zxp-temp directory');
@@ -368,7 +414,7 @@ function main() {
         // Step 5: Update .mxi file version
         updateMxiVersion();
         
-        // Step 6: Update JavaScript file versions
+        // Step 6: Update version placeholders in source files
         updateJavaScriptVersions();
         
         // Step 7: Create ZXP
