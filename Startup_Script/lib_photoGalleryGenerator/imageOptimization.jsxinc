@@ -1,0 +1,339 @@
+/**
+ * Photo Gallery Generator - Image Optimization
+ * Functions for processing and optimizing images for web use
+ */
+
+// Process an image file with optimization settings
+function processImageFile(sourceFile, outputFolder, config) {
+    try {
+        // Validate source file
+        if (!sourceFile || !sourceFile.exists) {
+            throw new Error('Source file does not exist: ' + sourceFile.name);
+        }
+
+        // Generate optimized filename
+        var optimizedFileName = getOptimizedFileName(sourceFile.name);
+        var outputFile = new File(outputFolder + '/' + optimizedFileName);
+
+        // In a full implementation, you would:
+        // 1. Use Bridge's image processing APIs to resize/compress images
+        // 2. Apply JPEG compression with specified quality
+        // 3. Handle different image formats appropriately
+        // 4. Use proper color space conversion for web
+
+        // For now, we'll do basic file copying with optimization placeholder
+        var success = performBasicImageProcessing(sourceFile, outputFile, config);
+        var originalDescription = ""
+        if (config.titleType === "Title->Description->File name") {
+            originalDescription = sourceFile.title || sourceFile.description || sourceFile.name;
+        } else if (config.titleType === "Description->Title->File name") {
+            originalDescription = sourceFile.description || sourceFile.title || sourceFile.name;
+        } else {
+            originalDescription = sourceFile.name;
+        }
+        if (success) {
+            return {
+                originalName: decodeFileName(sourceFile.name),
+                originalDescription: decodeFileName(originalDescription || ""),
+                originalRotation: sourceFile.rotation || 0,
+                fileName: optimizedFileName,
+                path: outputFile.fsName,
+                originalSize: sourceFile.length,
+                optimizedSize: outputFile.length,
+                format: 'jpg',
+                originalTitle: decodeFileName(sourceFile.title || ""),
+            };
+        } else {
+            throw new Error('Failed to process image: ' + sourceFile.name);
+        }
+
+    } catch (error) {
+        alert('Image processing error for ' + sourceFile.name + ': ' + error.message);
+        return null;
+    }
+}
+
+// Basic image processing (placeholder for full optimization)
+function performBasicImageProcessing(sourceFile, outputFile, config) {
+    try {
+        // In ExtendScript, true image processing requires:
+        // - Adobe Bridge API access to thumbnails/metadata
+        // - External image processing libraries
+        // - Or using Photoshop via BridgeTalk
+
+        // For this implementation, we'll do simple file copying
+        // In a production version, you'd implement:
+
+        /*
+        // Example of how full optimization might work:
+
+        // 1. Get image dimensions and info
+        var imageInfo = getImageDimensions(sourceFile);
+
+        // 2. Calculate resize dimensions
+        var resizeDims = calculateResizeDimensions(imageInfo, config);
+
+        // 3. Use BridgeTalk to Photoshop for processing
+        var psScript = generatePhotoshopScript(sourceFile, outputFile, resizeDims, config);
+        var bt = new BridgeTalk();
+        bt.target = "photoshop";
+        bt.body = psScript;
+        bt.send();
+
+        // 4. Wait for processing to complete
+        // 5. Verify output file
+        */
+
+        // 1. Get actual image dimensions from the file
+        var bitmapFile = new BitmapData(sourceFile, true);
+        var originalDimensions = {
+            width: bitmapFile.width,
+            height: bitmapFile.height
+        };
+
+        // 2. Calculate resize dimensions using actual dimensions
+        var resizeDimensions = calculateResizeDimensions(originalDimensions, config);
+
+        // 3. Resize maintaining aspect ratio. If it fails, keep the original file
+        var scaledBitmap = bitmapFile.resize(resizeDimensions.width, resizeDimensions.height) || bitmapFile;
+        if (sourceFile.rotation != 0) {
+            scaledBitmap = scaledBitmap.rotate(sourceFile.rotation);
+        }
+        scaledBitmap.exportTo(outputFile, config.jpgQuality || 85);
+        return true;
+
+
+    } catch (error) {
+        debugLog('Basic image processing failed: ' + error.message);
+        return false;
+    }
+}
+
+
+
+// Get image dimensions (placeholder - would use Bridge APIs in full implementation)
+function getImageDimensions(file) {
+    // In a full implementation, you would:
+    // - Use Bridge's Thumbnail object to get dimensions
+    // - Access EXIF data for camera information
+    // - Use file metadata for format-specific info
+
+    // Placeholder return values
+    return {
+        width: 1920, // Would be actual image width
+        height: 1080, // Would be actual image height
+        format: getFileExtension(file.name).toLowerCase(),
+        colorSpace: 'RGB', // Would detect actual color space
+        hasAlpha: false // Would detect alpha channel
+    };
+}
+
+// Calculate optimal resize dimensions
+function calculateResizeDimensions(imageInfo, config) {
+    var maxWidth = config.maxImageWidth || 800;
+    var maxHeight = config.maxImageHeight || 600;
+
+    var originalWidth = imageInfo.width;
+    var originalHeight = imageInfo.height;
+    var aspectRatio = originalWidth / originalHeight;
+
+    // Don't upscale images - only downscale if needed
+    if (originalWidth <= maxWidth && originalHeight <= maxHeight) {
+        return {
+            width: originalWidth,
+            height: originalHeight
+        };
+    }
+
+    var newWidth, newHeight;
+
+    // Calculate dimensions maintaining aspect ratio
+    // Scale by whichever dimension hits the limit first
+    var widthScale = maxWidth / originalWidth;
+    var heightScale = maxHeight / originalHeight;
+    var scale = Math.min(widthScale, heightScale);
+
+    newWidth = Math.round(originalWidth * scale);
+    newHeight = Math.round(originalHeight * scale);
+
+    return {
+        width: newWidth,
+        height: newHeight
+    };
+}
+
+// Generate Photoshop script for image processing (example)
+function generatePhotoshopScript(inputFile, outputFile, dimensions, config) {
+    // This would be a full Photoshop ExtendScript for image processing
+    var script = [
+        'var inputFile = new File("' + inputFile.fsName.replace(/\\/g, '\\\\') + '");',
+        'var outputFile = new File("' + outputFile.fsName.replace(/\\/g, '\\\\') + '");',
+        '',
+        'if (inputFile.exists) {',
+        '    app.open(inputFile);',
+        '    var doc = app.activeDocument;',
+        '',
+        '    // Resize image',
+        '    doc.resizeImage(' + dimensions.width + ', ' + dimensions.height + ', null, ResampleMethod.BICUBICSHARPER);',
+        '',
+        '    // Convert to RGB if needed',
+        '    if (doc.mode !== DocumentMode.RGB) {',
+        '        doc.changeMode(ChangeMode.RGB);',
+        '    }',
+        '',
+        '    // Save as optimized JPEG',
+        '    var jpgOptions = new JPEGSaveOptions();',
+        '    jpgOptions.quality = ' + (config.jpgQuality || 85) + ';',
+        '    jpgOptions.embedColorProfile = false;',
+        '    jpgOptions.formatOptions = FormatOptions.OPTIMIZEDBASELINE;',
+        '',
+        '    doc.saveAs(outputFile, jpgOptions, true, Extension.LOWERCASE);',
+        '    doc.close(SaveOptions.DONOTSAVECHANGES);',
+        '}',
+        ''
+    ].join('\n');
+
+    return script;
+}
+
+// Batch process multiple images with progress tracking
+function processImagesBatch(imageFiles, outputFolder, config, progressCallback) {
+    var processedImages = [];
+    var totalFiles = imageFiles.length;
+
+    for (var i = 0; i < totalFiles; i++) {
+        var file = imageFiles[i];
+
+        if (progressCallback) {
+            progressCallback(i + 1, totalFiles, 'Processing: ' + file.name);
+        }
+
+        var processedImage = processImageFile(file, outputFolder, config);
+        if (processedImage) {
+            processedImages.push(processedImage);
+        }
+
+        // Allow UI to process events (ExtendScript compatible)
+        $.sleep(1);
+    }
+
+    return processedImages;
+}
+
+// Validate image processing results
+function validateProcessedImages(processedImages, originalFiles) {
+    var validationResults = {
+        totalProcessed: processedImages.length,
+        totalOriginal: originalFiles.length,
+        success: true,
+        errors: [],
+        warnings: []
+    };
+
+    // Check if all images were processed
+    if (processedImages.length !== originalFiles.length) {
+        validationResults.success = false;
+        validationResults.errors.push('Not all images were processed successfully');
+    }
+
+    // Check file sizes (optimization should reduce file sizes)
+    for (var i = 0; i < processedImages.length; i++) {
+        var processed = processedImages[i];
+        var original = originalFiles[i];
+
+        if (processed.originalSize && processed.optimizedSize) {
+            var reduction = ((processed.originalSize - processed.optimizedSize) / processed.originalSize) * 100;
+
+            if (reduction < 0) {
+                validationResults.warnings.push('File size increased for: ' + processed.originalName);
+            } else if (reduction < 10) {
+                validationResults.warnings.push('Minimal size reduction for: ' + processed.originalName);
+            }
+        }
+    }
+
+    return validationResults;
+}
+
+
+
+// Get image format-specific processing options
+function getImageProcessingOptions(format, config) {
+    var options = {
+        quality: config.jpgQuality || 85,
+        format: 'jpg', // Default output format
+        progressive: true,
+        embedColorProfile: false,
+        stripMetadata: true
+    };
+
+    // Adjust options based on input format
+    switch (format.toLowerCase()) {
+        case 'jpg':
+        case 'jpeg':
+            options.format = 'jpg';
+            break;
+        case 'png':
+            options.format = 'png';
+            options.quality = 90; // PNG uses different quality scale
+            break;
+        case 'gif':
+            options.format = 'gif';
+            break;
+        case 'tiff':
+        case 'tif':
+            options.format = 'tiff';
+            break;
+        default:
+            options.format = 'jpg';
+    }
+
+    return options;
+}
+
+// Estimate processing time for progress indication
+function estimateProcessingTime(imageFiles, config) {
+    // Rough estimate: 2 seconds per image for processing
+    // This would be calibrated based on actual performance
+    var baseTimePerImage = 2000; // milliseconds
+    var totalTime = imageFiles.length * baseTimePerImage;
+
+    return {
+        totalMs: totalTime,
+        perImageMs: baseTimePerImage,
+        formatted: formatProcessingTime(totalTime)
+    };
+}
+
+// Format processing time for display
+function formatProcessingTime(milliseconds) {
+    var seconds = Math.ceil(milliseconds / 1000);
+    var minutes = Math.floor(seconds / 60);
+    seconds = seconds % 60;
+
+    if (minutes > 0) {
+        return minutes + 'm ' + seconds + 's';
+    } else {
+        return seconds + 's';
+    }
+}
+
+// Clean up temporary files created during processing
+function cleanupProcessingTempFiles(tempFiles) {
+    var cleanedCount = 0;
+
+    for (var i = 0; i < tempFiles.length; i++) {
+        try {
+            var tempFile = tempFiles[i];
+            if (tempFile instanceof File && tempFile.exists) {
+                tempFile.remove();
+                cleanedCount++;
+            }
+        } catch (error) {
+            debugLog('Failed to cleanup temp file: ' + error.message);
+        }
+    }
+
+    debugLog('Cleaned up ' + cleanedCount + ' temporary files');
+    return cleanedCount;
+}

@@ -1,0 +1,260 @@
+# Adobe Bridge ExtendScript Development Rules
+
+This project is an Adobe ExtendScript application targeting Adobe Bridge. Follow these rules for consistent, reliable Bridge scripting.
+
+## File Structure & Extensions
+
+- **Primary script files**: Use `.jsx` extension (e.g., `PhotoGalleryGenerator.jsx`)
+- **Include files**: Use `.jsxinc` extension for shared utilities
+- **Output files**: Standard web formats (`.html`, `.css`, `.js`)
+
+## ExtendScript Language Rules
+
+### Syntax & Compatibility
+- Use ES3/ES4 compatible syntax only (no ES6+ features)
+- Avoid `let` and `const` - use `var` for all variable declarations
+- Use function declarations instead of arrow functions
+- No template literals - use string concatenation
+- No default parameters or rest/spread operators
+
+### Code Style
+```javascript
+// Correct ExtendScript patterns
+function processImages(imageFiles) {
+    var result = [];
+    for (var i = 0; i < imageFiles.length; i++) {
+        var imageFile = imageFiles[i];
+        if (isValidImage(imageFile)) {
+            result.push(processImage(imageFile));
+        }
+    }
+    return result;
+}
+
+// Avoid modern JavaScript features
+// WRONG: let, const, arrow functions, template literals
+// const processImages = (files) => files.filter(f => isValidImage(f));
+```
+
+## Adobe Bridge API Patterns
+
+### Bridge Application Object
+```javascript
+// Always check if Bridge is available
+if (typeof app !== 'undefined' && app.name === 'bridge') {
+    // Your Bridge-specific code here
+}
+```
+
+### Working with Selections
+```javascript
+// Get selected thumbnails from Bridge
+function getSelectedFiles() {
+    var selectedThumbs = app.document.selections;
+    var selectedFiles = [];
+
+    for (var i = 0; i < selectedThumbs.length; i++) {
+        var thumb = selectedThumbs[i];
+        if (thumb.spec instanceof File) {
+            selectedFiles.push(thumb.spec);
+        }
+    }
+
+    return selectedFiles;
+}
+```
+
+### File Operations
+```javascript
+// Safe file operations with error handling
+function copyFileToOutput(sourceFile, outputFolder) {
+    try {
+        var destFile = new File(outputFolder + '/' + sourceFile.name);
+        if (sourceFile.copy(destFile)) {
+            return destFile;
+        } else {
+            throw new Error('Failed to copy file: ' + sourceFile.name);
+        }
+    } catch (error) {
+        alert('File copy error: ' + error.message);
+        return null;
+    }
+}
+```
+
+## ScriptUI Dialog Patterns
+
+### Dialog Structure
+```javascript
+function createGalleryDialog() {
+    var dialog = new Window('dialog', 'Photo Gallery Generator');
+    dialog.alignChildren = ['fill', 'top'];
+
+    // Add UI elements
+    var galleryTypeGroup = dialog.add('group');
+    galleryTypeGroup.add('statictext', undefined, 'Gallery Type:');
+
+    var galleryTypeDropdown = galleryTypeGroup.add('dropdownlist', undefined,
+        ['Grid', 'Masonry', 'Carousel']);
+    galleryTypeDropdown.selection = 0;
+
+    // Add buttons
+    var buttonGroup = dialog.add('group');
+    buttonGroup.alignment = 'right';
+    buttonGroup.add('button', undefined, 'Cancel');
+    buttonGroup.add('button', undefined, 'Generate Gallery');
+
+    return dialog;
+}
+```
+
+### Event Handlers
+```javascript
+// Proper event handling for ScriptUI
+function setupDialogEvents(dialog) {
+    var generateBtn = dialog.findElement('button', 'Generate Gallery');
+    var cancelBtn = dialog.findElement('button', 'Cancel');
+
+    generateBtn.onClick = function() {
+        try {
+            generateGallery();
+            dialog.close();
+        } catch (error) {
+            alert('Generation failed: ' + error.message);
+        }
+    };
+
+    cancelBtn.onClick = function() {
+        dialog.close();
+    };
+}
+```
+
+## Error Handling & Validation
+
+### Bridge-Specific Error Handling
+```javascript
+function safeBridgeOperation(operation) {
+    try {
+        if (!app || !app.document) {
+            throw new Error('Bridge is not available or no document is open');
+        }
+        return operation();
+    } catch (error) {
+        alert('Bridge operation failed: ' + error.message);
+        return null;
+    }
+}
+```
+
+### Input Validation
+```javascript
+function validateImageFiles(files) {
+    var validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.psd', '.pdf'];
+    var validFiles = [];
+
+    for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        if (file instanceof File && file.exists) {
+            var extension = file.name.toLowerCase().substr(file.name.lastIndexOf('.'));
+            if (validExtensions.indexOf(extension) !== -1) {
+                validFiles.push(file);
+            }
+        }
+    }
+
+    return validFiles;
+}
+```
+
+## Common Bridge Scripting Patterns
+
+### Menu Integration
+```javascript
+// Add to Bridge Tools menu
+function addMenuItem() {
+    if (MenuElement.find('Tools/Export Photo Gallery')) {
+        return; // Already exists
+    }
+
+    var toolsMenu = MenuElement.find('Tools');
+    if (toolsMenu) {
+        var menuItem = new MenuElement('command', 'Export Photo Gallery',
+            'at the end of ' + toolsMenu.name, 'exportGallery');
+        menuItem.onSelect = function() {
+            runPhotoGalleryGenerator();
+        };
+    }
+}
+```
+
+### Progress Tracking
+```javascript
+function processImagesWithProgress(imageFiles) {
+    var progressWin = new Window('palette', 'Processing Images');
+    var progressBar = progressWin.add('progressbar', undefined, 0, imageFiles.length);
+    progressWin.show();
+
+    for (var i = 0; i < imageFiles.length; i++) {
+        progressBar.value = i + 1;
+        progressWin.update();
+
+        processImage(imageFiles[i]);
+
+        // Allow UI to update
+        app.refresh();
+    }
+
+    progressWin.close();
+}
+```
+
+## File Organization Best Practices
+
+### Script Structure
+- Place main script logic in primary `.jsx` file
+- Extract reusable utilities to `.jsxinc` files
+- Include proper header comments with version and description
+- Use consistent naming conventions
+
+### Example Script Header
+```javascript
+/**
+ * Photo Gallery Generator v1.0
+ * Adobe Bridge ExtendScript for generating HTML photo galleries
+ *
+ * @author Your Name
+ * @version 1.0
+ * @requires Adobe Bridge
+ */
+
+//@include "utilities.jsxinc"
+//@include "dialogs.jsxinc"
+
+(function() {
+    // Main script logic here
+})();
+```
+
+## Performance Considerations
+
+- Use `app.refresh()` sparingly to avoid UI freezing
+- Process large image sets in batches
+- Show progress indicators for long operations
+- Clean up temporary files and objects
+- Use efficient loops and avoid unnecessary DOM manipulation
+
+## Cross-Platform Compatibility
+
+- Use forward slashes in file paths (Bridge handles platform conversion)
+- Test file operations on both Windows and macOS
+- Use platform-independent path joining: `folder + '/' + filename`
+- Handle platform-specific folder locations appropriately
+
+## Debugging Tips
+
+- Use `alert()` for debugging (console.log doesn't work in ExtendScript)
+- Check `$.writeln()` for ExtendScript Toolkit debugging
+- Validate all file and folder operations before use
+- Test with minimal data sets first
+- Use try-catch blocks around all Bridge API calls

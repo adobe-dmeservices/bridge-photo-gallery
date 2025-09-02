@@ -1,0 +1,3 @@
+cd /Users/jlockman/Documents/github/bridge-photo-gallery/zxp-temp
+find . -name ".DS_Store" -print -delete
+/Users/jlockman/Documents/github/bridge-photo-gallery/certificate/ZXPSignCmd -sign /Users/jlockman/Documents/github/bridge-photo-gallery/zxp-temp /Users/jlockman/Documents/github/bridge-photo-gallery/com.adobe.bridgephotogallery.zxp /Users/jlockman/Documents/github/bridge-photo-gallery/certificate/cert.p12 Adobe2019 -tsa http://timestamp.digicert.com/

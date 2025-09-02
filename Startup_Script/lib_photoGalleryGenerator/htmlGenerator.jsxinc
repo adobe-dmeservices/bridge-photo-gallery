@@ -1,0 +1,1975 @@
+/**
+ * Photo Gallery Generator - HTML Generation
+ * Functions to generate HTML, CSS, and JavaScript for the photo gallery
+ */
+
+// Helper function to format date in ISO format (ExtendScript compatible)
+function formatISODate(date) {
+    var year = date.getFullYear();
+    var month = ('0' + (date.getMonth() + 1)).slice(-2);
+    var day = ('0' + date.getDate()).slice(-2);
+    var hours = ('0' + date.getHours()).slice(-2);
+    var minutes = ('0' + date.getMinutes()).slice(-2);
+    var seconds = ('0' + date.getSeconds()).slice(-2);
+    var milliseconds = ('00' + date.getMilliseconds()).slice(-3);
+
+    return year + '-' + month + '-' + day + 'T' + hours + ':' + minutes + ':' + seconds + '.' + milliseconds + 'Z';
+}
+
+// Helper function to sanitize content for ExtendScript file writing
+function sanitizeContentForWriting(content) {
+    try {
+        // Replace problematic Unicode line separators with regular newlines
+        var sanitized = content.replace(/\u2028/g, '\n').replace(/\u2029/g, '\n');
+
+        // Ensure the content is properly encoded
+        return sanitized;
+    } catch (error) {
+        $.writeln("DEBUG: Content sanitization failed: " + error.message);
+        return content; // Return original content if sanitization fails
+    }
+}
+
+// Helper function to get detailed file system diagnostics
+function getFileSystemDiagnostics(filePath, operation) {
+    var diagnostics = {
+        operation: operation,
+        filePath: filePath,
+        timestamp: formatISODate(new Date()),
+        issues: []
+    };
+
+    try {
+        var file = new File(filePath);
+        var folder = new Folder(file.path);
+
+        // Check folder existence and permissions
+        if (!folder.exists) {
+            diagnostics.issues.push('Output folder does not exist: ' + file.path);
+        } else {
+            diagnostics.issues.push('Output folder exists: ' + file.path);
+        }
+
+        // Check if we can create files in the folder
+        var testFile = new File(file.path + '/test_write.tmp');
+        var canCreate = testFile.open('w') && testFile.write('test') && testFile.close();
+        if (canCreate) {
+            testFile.remove(); // Clean up test file
+            diagnostics.issues.push('Write permissions confirmed');
+        } else {
+            diagnostics.issues.push('No write permissions to output folder');
+        }
+
+        // Check disk space (approximate)
+        try {
+            // This is a rough approximation - ExtendScript doesn't provide direct disk space info
+            var largeString = '';
+            for (var i = 0; i < 10000; i++) {
+                largeString += 'x';
+            }
+            var tempFile = new File(Folder.temp + '/space_test.tmp');
+            if (tempFile.open('w') && tempFile.write(largeString) && tempFile.close()) {
+                tempFile.remove();
+                diagnostics.issues.push('Sufficient disk space available');
+            } else {
+                diagnostics.issues.push('Low disk space detected');
+            }
+        } catch (e) {
+            diagnostics.issues.push('Cannot determine disk space status');
+        }
+
+        // Check file path validity
+        if (filePath.indexOf('/') === -1 && filePath.indexOf('\\') === -1) {
+            diagnostics.issues.push('File path appears to be invalid (no path separators)');
+        }
+
+        // Check for special characters that might cause issues
+        var invalidChars = /[<>:"|?*]/;
+        if (invalidChars.test(filePath)) {
+            diagnostics.issues.push('File path contains invalid characters: < > : " | ? *');
+        }
+
+    } catch (diagError) {
+        diagnostics.issues.push('Error during diagnostics: ' + diagError.message);
+    }
+
+    return diagnostics;
+}
+
+// Helper function to format detailed error messages
+function createDetailedError(operation, filePath, originalError, diagnostics) {
+    var errorMsg = 'ERROR: ' + operation + ' Failed\n\n';
+    errorMsg += 'Target: ' + filePath + '\n';
+    errorMsg += 'Time: ' + formatISODate(new Date()) + '\n';
+    errorMsg += 'Error: ' + originalError.message + '\n\n';
+
+    errorMsg += 'Diagnostics:\n';
+    for (var i = 0; i < diagnostics.issues.length; i++) {
+        errorMsg += '  ' + (i + 1) + '. ' + diagnostics.issues[i] + '\n';
+    }
+
+    errorMsg += '\nTroubleshooting Steps:\n';
+
+    var hasMissingFolder = false;
+    var hasNoPermissions = false;
+    var hasLowDiskSpace = false;
+    var hasInvalidChars = false;
+
+    for (var j = 0; j < diagnostics.issues.length; j++) {
+        var issue = diagnostics.issues[j];
+        if (issue.indexOf('does not exist') > -1) hasMissingFolder = true;
+        if (issue.indexOf('No write permissions') > -1) hasNoPermissions = true;
+        if (issue.indexOf('Low disk space') > -1) hasLowDiskSpace = true;
+        if (issue.indexOf('invalid characters') > -1) hasInvalidChars = true;
+    }
+
+    if (hasMissingFolder) {
+        errorMsg += '  - Check that the output folder path is correct\n';
+        errorMsg += '  - Ensure parent directories exist\n';
+        errorMsg += '  - Try creating the folder manually first\n';
+    }
+
+    if (hasNoPermissions) {
+        errorMsg += '  - Check folder permissions\n';
+        errorMsg += '  - Run application as administrator\n';
+        errorMsg += '  - Choose a different output location\n';
+        errorMsg += '  - Close any applications using the folder\n';
+    }
+
+    if (hasLowDiskSpace) {
+        errorMsg += '  - Free up disk space\n';
+        errorMsg += '  - Choose a different drive/location\n';
+        errorMsg += '  - Delete temporary files\n';
+    }
+
+    if (hasInvalidChars) {
+        errorMsg += '  - Remove special characters from file path\n';
+        errorMsg += '  - Use only alphanumeric characters, spaces, hyphens, and underscores\n';
+        errorMsg += '  - Choose a different folder name\n';
+    }
+
+    errorMsg += '  - Try running the script again\n';
+    errorMsg += '  - Check Adobe Bridge logs for additional details\n';
+
+    return errorMsg;
+}
+
+// Main function to generate all gallery files
+function generateGalleryHTML(outputFolder, processedImages, config) {
+    try {
+        // Generate HTML file
+        generateHTMLFile(outputFolder, processedImages, config);
+
+        // Generate CSS file
+        generateCSSFile(outputFolder, config);
+
+        // Generate JavaScript file
+        generateJSFile(outputFolder, processedImages, config);
+
+        // Generate README file
+        generateReadmeFile(outputFolder, processedImages, config);
+
+    } catch (error) {
+        throw new Error('Failed to generate gallery files: ' + error.message);
+    }
+}
+
+// Generate the main HTML file
+function generateHTMLFile(outputFolder, processedImages, config) {
+    var filePath = outputFolder + '/index.html';
+    var operation = 'HTML File Generation';
+
+    try {
+        // Ensure output folder exists
+        var folder = new Folder(outputFolder);
+        if (!folder.exists && !folder.create()) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot create output folder: ' + outputFolder), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    var htmlContent = getHTMLTemplate(processedImages, config);
+        if (!htmlContent || htmlContent.length === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('No HTML content generated'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Sanitize content for ExtendScript compatibility
+        htmlContent = sanitizeContentForWriting(htmlContent);
+        $.writeln("DEBUG: Content sanitized for ExtendScript compatibility");
+
+        // Check for extremely large content that might cause issues
+        var contentSizeKB = htmlContent.length / 1024;
+        var contentSizeMB = contentSizeKB / 1024;
+
+        if (contentSizeMB > 50) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('Content size: ' + contentSizeMB.toFixed(2) + ' MB - extremely large content may cause write failures');
+            var detailedError = createDetailedError(operation, filePath, new Error('Content size (' + contentSizeMB.toFixed(2) + ' MB) may exceed ExtendScript limits'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        var htmlFile = new File(filePath);
+
+        // Check if we can open the file
+        if (!htmlFile.open('w')) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.open("w") returned false - possible permission or path issue');
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot open HTML file for writing: ' + htmlFile.fsName), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Write content and check success
+        // Add debugging information
+        var contentLength = htmlContent.length;
+        var contentSample = htmlContent.substring(0, 200) + (contentLength > 200 ? "..." : "");
+
+        $.writeln("DEBUG: Attempting to write HTML file to: " + htmlFile.fsName);
+        $.writeln("DEBUG: Content length: " + contentLength + " characters");
+        $.writeln("DEBUG: Content sample: " + contentSample);
+
+        var success = false;
+        var writeError = null;
+
+        try {
+            success = htmlFile.write(htmlContent);
+            $.writeln("DEBUG: Write operation result: " + success);
+        } catch (writeErr) {
+            writeError = writeErr;
+            $.writeln("DEBUG: Write operation threw exception: " + writeErr.message);
+        }
+
+        var closeResult = false;
+        try {
+            closeResult = htmlFile.close();
+            $.writeln("DEBUG: Close operation result: " + closeResult);
+        } catch (closeErr) {
+            $.writeln("DEBUG: Close operation threw exception: " + closeErr.message);
+            if (!writeError) writeError = closeErr;
+        }
+
+        // Verify the file was actually written and has content
+        var verifyFile = new File(filePath);
+        var fileExists = verifyFile.exists;
+        var fileSize = fileExists ? verifyFile.length : 0;
+
+        if (!success || writeError) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.write() returned false - write operation failed');
+            diagnostics.issues.push('Content length: ' + htmlContent.length + ' characters (' + contentSizeKB.toFixed(2) + ' KB)');
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            if (writeError) {
+                diagnostics.issues.push('Write exception: ' + writeError.message);
+            }
+
+            // Try alternative approach - write in chunks for very large content
+            if (contentSizeKB > 100 && !writeError) {
+                $.writeln("DEBUG: Large content detected, attempting chunked write...");
+                try {
+                    // Reopen the file for writing with sanitized content
+                    var chunkedFile = new File(filePath);
+                    if (chunkedFile.open('w')) {
+                        var chunkSize = 4096; // 4KB chunks (smaller for reliability)
+                        var chunks = [];
+                        // Use the already sanitized htmlContent
+                        for (var i = 0; i < htmlContent.length; i += chunkSize) {
+                            chunks.push(htmlContent.substring(i, i + chunkSize));
+                        }
+
+                        $.writeln("DEBUG: Split into " + chunks.length + " chunks");
+
+                        var chunkedSuccess = true;
+                        for (var j = 0; j < chunks.length; j++) {
+                            var chunkResult = chunkedFile.write(chunks[j]);
+                            if (!chunkResult) {
+                                chunkedSuccess = false;
+                                $.writeln("DEBUG: Failed to write chunk " + (j + 1) + " of " + chunks.length);
+                                break;
+                            }
+                        }
+
+                        chunkedFile.close();
+
+                        if (chunkedSuccess) {
+                            $.writeln("DEBUG: Chunked write succeeded!");
+                            success = true;
+                            closeResult = true;
+                        } else {
+                            diagnostics.issues.push('Chunked write also failed');
+                        }
+                    } else {
+                        diagnostics.issues.push('Could not reopen file for chunked write');
+                    }
+                } catch (chunkError) {
+                    diagnostics.issues.push('Chunked write exception: ' + chunkError.message);
+                }
+            }
+
+            if (!success) {
+                // Final fallback - try writing minimal content to test file system
+                $.writeln("DEBUG: Attempting final fallback with minimal content...");
+                try {
+                    var minimalContent = "<!DOCTYPE html><html><head><title>Test</title></head><body><h1>Test</h1></body></html>";
+                    var fallbackFile = new File(filePath);
+                    if (fallbackFile.open('w')) {
+                        var fallbackSuccess = fallbackFile.write(minimalContent);
+                        fallbackFile.close();
+
+                        if (fallbackSuccess) {
+                            diagnostics.issues.push('Minimal HTML file write succeeded - issue may be with content size/complexity');
+                        } else {
+                            diagnostics.issues.push('Even minimal HTML file write failed - likely file system issue');
+                        }
+                    } else {
+                        diagnostics.issues.push('Could not open file for minimal test write');
+                    }
+                } catch (fallbackError) {
+                    diagnostics.issues.push('Minimal test write exception: ' + fallbackError.message);
+                }
+
+                var detailedError = createDetailedError(operation, filePath, writeError || new Error('Failed to write HTML content to file'), diagnostics);
+                throw new Error(detailedError);
+            }
+        }
+
+        if (!fileExists) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File does not exist after write operation');
+            diagnostics.issues.push('File.write() returned: ' + success);
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('HTML file was not created on disk'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File exists but has zero size');
+            diagnostics.issues.push('Expected size: ' + htmlContent.length + ' characters');
+            diagnostics.issues.push('Actual size: ' + fileSize + ' bytes');
+            var detailedError = createDetailedError(operation, filePath, new Error('HTML file was created but contains no data'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize < htmlContent.length * 0.9) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File size mismatch - possible partial write');
+            diagnostics.issues.push('Expected: ' + htmlContent.length + ' characters');
+            diagnostics.issues.push('Actual: ' + fileSize + ' bytes');
+            diagnostics.issues.push('Write completion: ' + ((fileSize / htmlContent.length) * 100).toFixed(1) + '%');
+            var detailedError = createDetailedError(operation, filePath, new Error('HTML file appears to be partially written'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    } catch (error) {
+        // If it's already a detailed error, just re-throw it
+        if (error.message.indexOf('ERROR:') === 0) {
+            throw error;
+        }
+        // Otherwise, create a detailed error
+        var diagnostics = getFileSystemDiagnostics(filePath, operation);
+        var detailedError = createDetailedError(operation, filePath, error, diagnostics);
+        throw new Error(detailedError);
+    }
+}
+
+// Generate the CSS file
+function generateCSSFile(outputFolder, config) {
+    var filePath = outputFolder + '/style.css';
+    var operation = 'CSS File Generation';
+
+    try {
+        // Ensure output folder exists
+        var folder = new Folder(outputFolder);
+        if (!folder.exists && !folder.create()) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot create output folder: ' + outputFolder), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    var cssContent = getCSSTemplate(config);
+        if (!cssContent || cssContent.length === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('No CSS content generated'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Check for extremely large content that might cause issues
+        var contentSizeKB = cssContent.length / 1024;
+        var contentSizeMB = contentSizeKB / 1024;
+
+        if (contentSizeMB > 10) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('Content size: ' + contentSizeMB.toFixed(2) + ' MB - large CSS content may cause write failures');
+            var detailedError = createDetailedError(operation, filePath, new Error('CSS content size (' + contentSizeMB.toFixed(2) + ' MB) may exceed ExtendScript limits'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        var cssFile = new File(filePath);
+
+        // Check if we can open the file
+        if (!cssFile.open('w')) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.open("w") returned false - possible permission or path issue');
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot open CSS file for writing: ' + cssFile.fsName), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Write content and check success
+        var success = cssFile.write(cssContent);
+        var closeResult = cssFile.close();
+
+        // Verify the file was actually written and has content
+        var verifyFile = new File(filePath);
+        var fileExists = verifyFile.exists;
+        var fileSize = fileExists ? verifyFile.length : 0;
+
+        if (!success) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.write() returned false - write operation failed');
+            diagnostics.issues.push('Content length: ' + cssContent.length + ' characters (' + contentSizeKB.toFixed(2) + ' KB)');
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('Failed to write CSS content to file'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (!fileExists) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File does not exist after write operation');
+            diagnostics.issues.push('File.write() returned: ' + success);
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('CSS file was not created on disk'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File exists but has zero size');
+            diagnostics.issues.push('Expected size: ' + cssContent.length + ' characters');
+            diagnostics.issues.push('Actual size: ' + fileSize + ' bytes');
+            var detailedError = createDetailedError(operation, filePath, new Error('CSS file was created but contains no data'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize < cssContent.length * 0.9) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File size mismatch - possible partial write');
+            diagnostics.issues.push('Expected: ' + cssContent.length + ' characters');
+            diagnostics.issues.push('Actual: ' + fileSize + ' bytes');
+            diagnostics.issues.push('Write completion: ' + ((fileSize / cssContent.length) * 100).toFixed(1) + '%');
+            var detailedError = createDetailedError(operation, filePath, new Error('CSS file appears to be partially written'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    } catch (error) {
+        // If it's already a detailed error, just re-throw it
+        if (error.message.indexOf('ERROR:') === 0) {
+            throw error;
+        }
+        // Otherwise, create a detailed error
+        var diagnostics = getFileSystemDiagnostics(filePath, operation);
+        var detailedError = createDetailedError(operation, filePath, error, diagnostics);
+        throw new Error(detailedError);
+    }
+}
+
+// Generate the JavaScript file
+function generateJSFile(outputFolder, processedImages, config) {
+    var filePath = outputFolder + '/script.js';
+    var operation = 'JavaScript File Generation';
+
+    try {
+        // Ensure output folder exists
+        var folder = new Folder(outputFolder);
+        if (!folder.exists && !folder.create()) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot create output folder: ' + outputFolder), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    var jsContent = getJSTemplate(processedImages, config);
+        if (!jsContent || jsContent.length === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('No JavaScript content generated'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Check for extremely large content that might cause issues
+        var contentSizeKB = jsContent.length / 1024;
+        var contentSizeMB = contentSizeKB / 1024;
+
+        if (contentSizeMB > 5) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('Content size: ' + contentSizeMB.toFixed(2) + ' MB - large JavaScript content may cause write failures');
+            var detailedError = createDetailedError(operation, filePath, new Error('JavaScript content size (' + contentSizeMB.toFixed(2) + ' MB) may exceed ExtendScript limits'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        var jsFile = new File(filePath);
+
+        // Check if we can open the file
+        if (!jsFile.open('w')) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.open("w") returned false - possible permission or path issue');
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot open JavaScript file for writing: ' + jsFile.fsName), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Write content and check success
+        var success = jsFile.write(jsContent);
+        var closeResult = jsFile.close();
+
+        // Verify the file was actually written and has content
+        var verifyFile = new File(filePath);
+        var fileExists = verifyFile.exists;
+        var fileSize = fileExists ? verifyFile.length : 0;
+
+        if (!success) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.write() returned false - write operation failed');
+            diagnostics.issues.push('Content length: ' + jsContent.length + ' characters (' + contentSizeKB.toFixed(2) + ' KB)');
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('Failed to write JavaScript content to file'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (!fileExists) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File does not exist after write operation');
+            diagnostics.issues.push('File.write() returned: ' + success);
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('JavaScript file was not created on disk'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File exists but has zero size');
+            diagnostics.issues.push('Expected size: ' + jsContent.length + ' characters');
+            diagnostics.issues.push('Actual size: ' + fileSize + ' bytes');
+            var detailedError = createDetailedError(operation, filePath, new Error('JavaScript file was created but contains no data'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize < jsContent.length * 0.9) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File size mismatch - possible partial write');
+            diagnostics.issues.push('Expected: ' + jsContent.length + ' characters');
+            diagnostics.issues.push('Actual: ' + fileSize + ' bytes');
+            diagnostics.issues.push('Write completion: ' + ((fileSize / jsContent.length) * 100).toFixed(1) + '%');
+            var detailedError = createDetailedError(operation, filePath, new Error('JavaScript file appears to be partially written'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    } catch (error) {
+        // If it's already a detailed error, just re-throw it
+        if (error.message.indexOf('ERROR:') === 0) {
+            throw error;
+        }
+        // Otherwise, create a detailed error
+        var diagnostics = getFileSystemDiagnostics(filePath, operation);
+        var detailedError = createDetailedError(operation, filePath, error, diagnostics);
+        throw new Error(detailedError);
+    }
+}
+
+// Generate README file
+function generateReadmeFile(outputFolder, processedImages, config) {
+    var filePath = outputFolder + '/README.txt';
+    var operation = 'README File Generation';
+
+    try {
+        // Ensure output folder exists
+        var folder = new Folder(outputFolder);
+        if (!folder.exists && !folder.create()) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot create output folder: ' + outputFolder), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    var readmeContent = getReadmeTemplate(processedImages, config);
+        if (!readmeContent || readmeContent.length === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            var detailedError = createDetailedError(operation, filePath, new Error('No README content generated'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Check for extremely large content that might cause issues
+        var contentSizeKB = readmeContent.length / 1024;
+        var contentSizeMB = contentSizeKB / 1024;
+
+        if (contentSizeMB > 1) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('Content size: ' + contentSizeMB.toFixed(2) + ' MB - large README content may cause write failures');
+            var detailedError = createDetailedError(operation, filePath, new Error('README content size (' + contentSizeMB.toFixed(2) + ' MB) may exceed ExtendScript limits'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        var readmeFile = new File(filePath);
+
+        // Check if we can open the file
+        if (!readmeFile.open('w')) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.open("w") returned false - possible permission or path issue');
+            var detailedError = createDetailedError(operation, filePath, new Error('Cannot open README file for writing: ' + readmeFile.fsName), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        // Write content and check success
+        var success = readmeFile.write(readmeContent);
+        var closeResult = readmeFile.close();
+
+        // Verify the file was actually written and has content
+        var verifyFile = new File(filePath);
+        var fileExists = verifyFile.exists;
+        var fileSize = fileExists ? verifyFile.length : 0;
+
+        if (!success) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File.write() returned false - write operation failed');
+            diagnostics.issues.push('Content length: ' + readmeContent.length + ' characters (' + contentSizeKB.toFixed(2) + ' KB)');
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('Failed to write README content to file'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (!fileExists) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File does not exist after write operation');
+            diagnostics.issues.push('File.write() returned: ' + success);
+            diagnostics.issues.push('File.close() result: ' + closeResult);
+            var detailedError = createDetailedError(operation, filePath, new Error('README file was not created on disk'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize === 0) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File exists but has zero size');
+            diagnostics.issues.push('Expected size: ' + readmeContent.length + ' characters');
+            diagnostics.issues.push('Actual size: ' + fileSize + ' bytes');
+            var detailedError = createDetailedError(operation, filePath, new Error('README file was created but contains no data'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+        if (fileSize < readmeContent.length * 0.9) {
+            var diagnostics = getFileSystemDiagnostics(filePath, operation);
+            diagnostics.issues.push('File size mismatch - possible partial write');
+            diagnostics.issues.push('Expected: ' + readmeContent.length + ' characters');
+            diagnostics.issues.push('Actual: ' + fileSize + ' bytes');
+            diagnostics.issues.push('Write completion: ' + ((fileSize / readmeContent.length) * 100).toFixed(1) + '%');
+            var detailedError = createDetailedError(operation, filePath, new Error('README file appears to be partially written'), diagnostics);
+            throw new Error(detailedError);
+        }
+
+    } catch (error) {
+        // If it's already a detailed error, just re-throw it
+        if (error.message.indexOf('ERROR:') === 0) {
+            throw error;
+        }
+        // Otherwise, create a detailed error
+        var diagnostics = getFileSystemDiagnostics(filePath, operation);
+        var detailedError = createDetailedError(operation, filePath, error, diagnostics);
+        throw new Error(detailedError);
+    }
+}
+
+// HTML template
+function getHTMLTemplate(processedImages, config) {
+    var galleryItems = '';
+    for (var i = 0; i < processedImages.length; i++) {
+        var image = processedImages[i];
+        galleryItems += getGalleryItemHTML(image, i, config);
+    }
+
+    var lightboxHTML = config.includeLightbox ? getLightboxHTML(processedImages) : '';
+
+    // Determine layout class and structure based on gallery type
+    var layoutType = config.galleryType || 'grid';
+    var galleryClass = 'gallery-' + layoutType;
+    var galleryStructure = '';
+
+    if (layoutType === 'carousel') {
+        galleryStructure = '<div class="gallery-carousel" id="galleryCarousel">\n' +
+                          '    <div class="carousel-container">\n' +
+                          '        <div class="carousel-track">\n' +
+                          galleryItems +
+                          '        </div>\n' +
+                          '    </div>\n' +
+                          '    <button class="carousel-prev" id="carouselPrev">&lt;</button>\n' +
+                          '    <button class="carousel-next" id="carouselNext">&gt;</button>\n' +
+                          '    <div class="carousel-bottom-bar">\n' +
+                          '        <div class="carousel-caption" id="carouselCaption"></div>\n' +
+                          '        <div class="carousel-dots" id="carouselDots"></div>\n' +
+                          '    </div>\n' +
+                          '</div>\n';
+    } else {
+        galleryStructure = '<div class="' + galleryClass + '" id="galleryGrid">\n' +
+                          galleryItems +
+                          '</div>\n';
+    }
+
+    return '<!DOCTYPE html>\n' +
+           '<html lang="en">\n' +
+           '<head>\n' +
+           '    <meta charset="UTF-8">\n' +
+           '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+           '    <title>' + escapeHtml(config.galleryName || 'Photo Gallery') + '</title>\n' +
+           '    <link rel="stylesheet" href="style.css">\n' +
+           '</head>\n' +
+           '<body>\n' +
+           '    <div class="gallery-container">\n' +
+           '        <header class="gallery-header">\n' +
+           '            <h1>' + escapeHtml(config.galleryName || 'Photo Gallery') + '</h1>\n' +
+           '            <p class="gallery-info">' + processedImages.length + ' images</p>\n' +
+           '        </header>\n' +
+           '\n' +
+           galleryStructure +
+           '    </div>\n' +
+           '\n' +
+           lightboxHTML +
+           '\n' +
+           '    <script src="script.js"></script>\n' +
+           '</body>\n' +
+           '</html>';
+}
+
+// Generate HTML for individual gallery items
+function getGalleryItemHTML(image, index, config) {
+    var imageName = decodeFileName(image.originalName);
+    var imagePath = 'images/' + image.fileName;
+    var layoutType = config.galleryType || 'grid';
+    var displayName = image.originalDescription ? decodeFileName(image.originalDescription) : imageName;
+
+    // Different HTML structure for carousel vs grid/masonry
+    if (layoutType === 'carousel') {
+        return '                <div class="carousel-slide" data-index="' + index + '">\n' +
+               '                    <div class="gallery-item">\n' +
+               '                        <img src="' + imagePath + '" alt="' + displayName + '" loading="lazy">\n' +
+               '                        <div class="gallery-item-overlay">\n' +
+               '                            <div class="gallery-item-info">\n' +
+               '                                <h3>' + displayName + '</h3>\n' +
+               '                            </div>\n' +
+               '                        </div>\n' +
+               '                    </div>\n' +
+               '                </div>\n';
+    } else {
+        return '            <div class="gallery-item" data-index="' + index + '">\n' +
+               '                <img src="' + imagePath + '" alt="' + displayName + '" loading="lazy">\n' +
+               '                <div class="gallery-item-overlay">\n' +
+               '                    <div class="gallery-item-info">\n' +
+               '                        <h3>' + displayName + '</h3>\n' +
+               '                    </div>\n' +
+               '                </div>\n' +
+               '            </div>\n';
+    }
+}
+
+// Generate lightbox HTML
+function getLightboxHTML(processedImages) {
+    return            '    <div id="lightbox" class="lightbox">\n' +
+           '        <div class="lightbox-overlay" id="lightboxOverlay"></div>\n' +
+           '        <div class="lightbox-content">\n' +
+           '            <div class="lightbox-image-container">\n' +
+           '                <img id="lightboxImage" src="" alt="">\n' +
+           '            </div>\n' +
+           '            <div class="lightbox-caption" id="lightboxCaption"></div>\n' +
+           '            <button class="lightbox-close" id="lightboxClose">X</button>\n' +
+           '            <button class="lightbox-prev" id="lightboxPrev">&lt;</button>\n' +
+           '            <button class="lightbox-next" id="lightboxNext">&gt;</button>\n' +
+           '        </div>\n' +
+           '    </div>';
+}
+
+// Generate layout-specific CSS
+function getLayoutCSS(layoutType, gridColumns, config) {
+    if (layoutType === 'masonry') {
+        return '/* Masonry Layout - CSS Columns with Modern Browser Support */\n' +
+               '.gallery-masonry {\n' +
+               '    column-count: ' + gridColumns + ';\n' +
+               '    column-gap: 15px;\n' +
+               '    column-fill: balance;\n' +
+               '    margin-bottom: 30px;\n' +
+               '}\n' +
+               '\n' +
+               '.gallery-masonry .gallery-item {\n' +
+               '    display: inline-block;\n' +
+               '    width: 100%;\n' +
+               '    margin-bottom: 15px;\n' +
+               '    break-inside: avoid;\n' +
+               '    -webkit-column-break-inside: avoid;\n' +
+               '    page-break-inside: avoid;\n' +
+               '    overflow: hidden;\n' +
+               '    border-radius: 8px;\n' +
+               '    box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n' +
+               '    cursor: pointer;\n' +
+               '    transition: transform 0.3s ease, box-shadow 0.3s ease;\n' +
+               '    min-height: auto !important;\n' +
+               '    align-items: unset !important;\n' +
+               '    justify-content: unset !important;\n' +
+               '}\n' +
+               '\n' +
+               '.gallery-masonry .gallery-item img {\n' +
+               '    width: 100%;\n' +
+               '    height: auto;\n' +
+               '    display: block;\n' +
+               '    vertical-align: top;\n' +
+               '}\n';
+    } else if (layoutType === 'carousel') {
+        return '/* Carousel Layout */\n' +
+               '.gallery-carousel {\n' +
+               '    position: relative;\n' +
+               '    overflow: hidden;\n' +
+               '    height: calc(100vh - 140px);\n' +
+               '    margin-bottom: 30px;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-container {\n' +
+               '    height: 100%;\n' +
+               '    overflow: hidden;\n' +
+               '    border-radius: 8px;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-track {\n' +
+               '    display: flex;\n' +
+               '    transition: transform 0.5s ease;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-slide {\n' +
+               '    flex: 0 0 100%;\n' +
+               '    width: 100%;\n' +
+               '    height: 100%;\n' +
+               '    display: flex;\n' +
+               '    justify-content: center;\n' +
+               '    align-items: center;\n' +
+               '    padding: 20px;\n' +
+               '    box-sizing: border-box;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-slide .gallery-item {\n' +
+               '    max-width: 100%;\n' +
+               '    max-height: 100%;\n' +
+               '    display: flex;\n' +
+               '    justify-content: center;\n' +
+               '    align-items: center;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-slide img {\n' +
+               '    max-width: 100%;\n' +
+               '    max-height: 100%;\n' +
+               '    width: auto;\n' +
+               '    height: auto;\n' +
+               '    object-fit: contain;\n' +
+               '    border-radius: 8px;\n' +
+               '    box-shadow: 0 4px 20px rgba(0,0,0,0.3);\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-prev,\n' +
+               '.carousel-next {\n' +
+               '    position: absolute;\n' +
+               '    top: 50%;\n' +
+               '    transform: translateY(-50%);\n' +
+               '    background: rgba(0,0,0,0.7);\n' +
+               '    color: white;\n' +
+               '    border: none;\n' +
+               '    font-size: 2rem;\n' +
+               '    cursor: pointer;\n' +
+               '    padding: 15px 20px;\n' +
+               '    border-radius: 50%;\n' +
+               '    z-index: 10;\n' +
+               '    transition: all 0.3s ease;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-prev:hover,\n' +
+               '.carousel-next:hover {\n' +
+               '    background: rgba(0,0,0,0.9);\n' +
+               '    transform: translateY(-50%) scale(1.1);\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-prev {\n' +
+               '    left: 20px;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-next {\n' +
+               '    right: 20px;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-bottom-bar {\n' +
+               '    position: fixed;\n' +
+               '    bottom: 0;\n' +
+               '    left: 0;\n' +
+               '    right: 0;\n' +
+               '    background: rgba(0,0,0,0.8);\n' +
+               '    backdrop-filter: blur(10px);\n' +
+               '    padding: 20px;\n' +
+               '    z-index: 100;\n' +
+               '    display: flex;\n' +
+               '    flex-direction: column;\n' +
+               '    align-items: center;\n' +
+               '    gap: 15px;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-caption {\n' +
+               '    color: white;\n' +
+               '    font-size: 1.1rem;\n' +
+               '    font-weight: 500;\n' +
+               '    text-align: center;\n' +
+               '    text-shadow: 0 2px 4px rgba(0,0,0,0.5);\n' +
+               '    max-width: 90%;\n' +
+               '    overflow: hidden;\n' +
+               '    text-overflow: ellipsis;\n' +
+               '    white-space: nowrap;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-dots {\n' +
+               '    display: flex;\n' +
+               '    gap: 12px;\n' +
+               '    align-items: center;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-dot {\n' +
+               '    width: 14px;\n' +
+               '    height: 14px;\n' +
+               '    border-radius: 50%;\n' +
+               '    background: rgba(255,255,255,0.4);\n' +
+               '    cursor: pointer;\n' +
+               '    transition: all 0.3s ease;\n' +
+               '    border: 2px solid transparent;\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-dot:hover {\n' +
+               '    background: rgba(255,255,255,0.7);\n' +
+               '    transform: scale(1.1);\n' +
+               '}\n' +
+               '\n' +
+               '.carousel-dot.active {\n' +
+               '    background: white;\n' +
+               '    border-color: rgba(255,255,255,0.8);\n' +
+               '    box-shadow: 0 0 10px rgba(255,255,255,0.5);\n' +
+               '}\n';
+    } else {
+        // Default grid layout
+        var containerType = config && config.gridContainerType ? config.gridContainerType : 'full size';
+        var isSquare = containerType === 'square';
+        
+        var gridCSS = '.gallery-grid {\n' +
+                     '    display: grid;\n' +
+                     '    grid-template-columns: repeat(' + gridColumns + ', 1fr);\n' +
+                     '    gap: 15px;\n' +
+                     '    margin-bottom: 30px;\n' +
+                     '}\n';
+        
+        if (isSquare) {
+            gridCSS += '\n' +
+                      '/* Square container styling */\n' +
+                      '.gallery-grid .gallery-item {\n' +
+                      '    aspect-ratio: 1;\n' +
+                      '    overflow: hidden;\n' +
+                      '}\n' +
+                      '\n' +
+                      '.gallery-grid .gallery-item img {\n' +
+                      '    width: 100%;\n' +
+                      '    height: 100%;\n' +
+                      '    object-fit: cover;\n' +
+                      '    object-position: center;\n' +
+                      '}\n';
+        }
+        
+        return gridCSS;
+    }
+}
+
+// CSS template
+function getCSSTemplate(config) {
+    var gridColumns = config.columns || 3;
+    var layoutType = config.galleryType || 'grid';
+    var responsiveCSS = config.responsive ? getResponsiveCSS(gridColumns, layoutType) : '';
+    var layoutCSS = getLayoutCSS(layoutType, gridColumns, config);
+
+    return '/* Photo Gallery Styles */\n' +
+           '\n' +
+           '* {\n' +
+           '    margin: 0;\n' +
+           '    padding: 0;\n' +
+           '    box-sizing: border-box;\n' +
+           '}\n' +
+           '\n' +
+           'body {\n' +
+           '    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;\n' +
+           '    background-color: #f5f5f5;\n' +
+           '    line-height: 1.6;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-container {\n' +
+           '    max-width: 1200px;\n' +
+           '    margin: 0 auto;\n' +
+           '    padding: 20px;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-header {\n' +
+           '    text-align: center;\n' +
+           '    margin-bottom: 30px;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-header h1 {\n' +
+           '    color: #333;\n' +
+           '    font-size: 2.5rem;\n' +
+           '    margin-bottom: 10px;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-info {\n' +
+           '    color: #666;\n' +
+           '    font-size: 1.1rem;\n' +
+           '}\n' +
+           '\n' +
+           layoutCSS +
+           '\n' +
+           '.gallery-item {\n' +
+           '    position: relative;\n' +
+           '    overflow: hidden;\n' +
+           '    border-radius: 8px;\n' +
+           '    box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n' +
+           '    cursor: pointer;\n' +
+           '    transition: transform 0.3s ease, box-shadow 0.3s ease;\n' +
+           '    display: flex;\n' +
+           '    align-items: center;\n' +
+           '    justify-content: center;\n' +
+           '    min-height: 200px;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item:hover {\n' +
+           '    transform: translateY(-5px);\n' +
+           '    box-shadow: 0 5px 20px rgba(0,0,0,0.2);\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item img {\n' +
+           '    width: 100%;\n' +
+           '    height: auto;\n' +
+           '    display: block;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item-overlay {\n' +
+           '    position: absolute;\n' +
+           '    top: 0;\n' +
+           '    left: 0;\n' +
+           '    right: 0;\n' +
+           '    bottom: 0;\n' +
+           '    background: rgba(0,0,0,0.7);\n' +
+           '    display: flex;\n' +
+           '    align-items: center;\n' +
+           '    justify-content: center;\n' +
+           '    opacity: 0;\n' +
+           '    transition: opacity 0.3s ease;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item:hover .gallery-item-overlay {\n' +
+           '    opacity: 1;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item-info {\n' +
+           '    text-align: center;\n' +
+           '    color: white;\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item-info h3 {\n' +
+           '    font-size: 1.1rem;\n' +
+           '    margin-bottom: 5px;\n' +
+           '}\n' +
+           '\n' +
+           '/* Lightbox Styles */\n' +
+           '.lightbox {\n' +
+           '    display: none;\n' +
+           '    position: fixed;\n' +
+           '    top: 0;\n' +
+           '    left: 0;\n' +
+           '    width: 100%;\n' +
+           '    height: 100%;\n' +
+           '    z-index: 1000;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox.active {\n' +
+           '    display: block;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-overlay {\n' +
+           '    position: absolute;\n' +
+           '    top: 0;\n' +
+           '    left: 0;\n' +
+           '    width: 100%;\n' +
+           '    height: 100%;\n' +
+           '    background: rgba(0,0,0,0.9);\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-content {\n' +
+           '    position: relative;\n' +
+           '    display: flex;\n' +
+           '    flex-direction: column;\n' +
+           '    max-width: 95vw;\n' +
+           '    max-height: 90vh;\n' +
+           '    width: auto;\n' +
+           '    height: auto;\n' +
+           '    margin: 5vh auto 5vh auto;\n' +
+           '    text-align: center;\n' +
+           '    padding: 20px;\n' +
+           '    box-sizing: border-box;\n' +
+           '    gap: 15px;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-image-container {\n' +
+           '    flex: 7;\n' +
+           '    display: flex;\n' +
+           '    align-items: center;\n' +
+           '    justify-content: center;\n' +
+           '    width: 100%;\n' +
+           '    min-height: 0;\n' +
+           '    position: relative;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-content img {\n' +
+           '    max-width: 100%;\n' +
+           '    max-height: 100%;\n' +
+           '    width: auto;\n' +
+           '    height: auto;\n' +
+           '    object-fit: contain;\n' +
+           '    border-radius: 4px;\n' +
+           '    box-shadow: 0 4px 20px rgba(0,0,0,0.5);\n' +
+           '    transition: opacity 0.3s ease;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-content img.loading {\n' +
+           '    opacity: 0.7;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption {\n' +
+           '    flex: 3;\n' +
+           '    color: white;\n' +
+           '    font-size: 1.1rem;\n' +
+           '    line-height: 1.4;\n' +
+           '    max-width: 100%;\n' +
+           '    word-wrap: break-word;\n' +
+           '    overflow-wrap: break-word;\n' +
+           '    padding: 10px;\n' +
+           '    box-sizing: border-box;\n' +
+           '    min-height: 60px;\n' +
+           '    max-height: 100%;\n' +
+           '    overflow-y: auto;\n' +
+           '    overflow-x: hidden;\n' +
+           '    scrollbar-width: thin;\n' +
+           '    scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.3);\n' +
+           '    scroll-behavior: smooth;\n' +
+           '    display: block;\n' +
+           '    position: relative;\n' +
+           '    background: rgba(0, 0, 0, 0.3);\n' +
+           '    border-radius: 4px;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption::-webkit-scrollbar {\n' +
+           '    width: 10px;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption::-webkit-scrollbar-track {\n' +
+           '    background: rgba(0, 0, 0, 0.3);\n' +
+           '    border-radius: 5px;\n' +
+           '    margin: 2px;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption::-webkit-scrollbar-thumb {\n' +
+           '    background: rgba(255, 255, 255, 0.4);\n' +
+           '    border-radius: 5px;\n' +
+           '    border: 1px solid rgba(0, 0, 0, 0.1);\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption::-webkit-scrollbar-thumb:hover {\n' +
+           '    background: rgba(255, 255, 255, 0.6);\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption::-webkit-scrollbar-thumb:active {\n' +
+           '    background: rgba(255, 255, 255, 0.7);\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption::-webkit-scrollbar-corner {\n' +
+           '    background: rgba(0, 0, 0, 0.3);\n' +
+           '}\n' +
+           '\n' +
+           '/* Ensure caption scrolling works on touch devices */\n' +
+           '.lightbox-caption {\n' +
+           '    -webkit-overflow-scrolling: touch;\n' +
+           '}\n' +
+           '\n' +
+           '/* Fallback for browsers without custom scrollbar support */\n' +
+           '@supports not (scrollbar-width: thin) {\n' +
+           '    .lightbox-caption::-webkit-scrollbar {\n' +
+           '        width: 12px;\n' +
+           '    }\n' +
+           '}\n' +
+           '\n' +
+           '/* Improve readability of long captions */\n' +
+           '.lightbox-caption p {\n' +
+           '    margin-bottom: 0.8em;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-caption p:last-child {\n' +
+           '    margin-bottom: 0;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-close,\n' +
+           '.lightbox-prev,\n' +
+           '.lightbox-next {\n' +
+           '    position: absolute;\n' +
+           '    background: rgba(0,0,0,0.7);\n' +
+           '    color: white;\n' +
+           '    border: none;\n' +
+           '    font-size: 2rem;\n' +
+           '    cursor: pointer;\n' +
+           '    padding: 10px 15px;\n' +
+           '    border-radius: 5px;\n' +
+           '    transition: background 0.3s ease;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-close:hover,\n' +
+           '.lightbox-prev:hover,\n' +
+           '.lightbox-next:hover {\n' +
+           '    background: rgba(0,0,0,0.9);\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-close {\n' +
+           '    top: -50px;\n' +
+           '    right: 0;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-prev {\n' +
+           '    position: fixed;\n' +
+           '    top: 50vh;\n' +
+           '    left: 20px;\n' +
+           '    transform: translateY(-50%);\n' +
+           '    z-index: 1001;\n' +
+           '}\n' +
+           '\n' +
+           '.lightbox-next {\n' +
+           '    position: fixed;\n' +
+           '    top: 50vh;\n' +
+           '    right: 20px;\n' +
+           '    transform: translateY(-50%);\n' +
+           '    z-index: 1001;\n' +
+           '}\n' +
+           '\n' +
+           responsiveCSS +
+           '\n' +
+           '/* Loading animation */\n' +
+           '@keyframes fadeIn {\n' +
+           '    from { opacity: 0; transform: translateY(20px); }\n' +
+           '    to { opacity: 1; transform: translateY(0); }\n' +
+           '}\n' +
+           '\n' +
+           '.gallery-item {\n' +
+           '    animation: fadeIn 0.5s ease-out;\n' +
+           '}';
+}
+
+// Generate responsive CSS
+function getResponsiveCSS(originalColumns, layoutType) {
+    var layoutResponsive = '';
+
+    if (layoutType === 'grid') {
+        layoutResponsive = '    .gallery-grid {\n' +
+                          '        grid-template-columns: repeat(2, 1fr);\n' +
+                          '        gap: 10px;\n' +
+                          '    }\n';
+    } else if (layoutType === 'masonry') {
+        layoutResponsive = '    .gallery-masonry {\n' +
+                          '        column-count: 2;\n' +
+                          '    }\n';
+    } else if (layoutType === 'carousel') {
+        layoutResponsive = '    .carousel-slide {\n' +
+                          '        min-height: 300px;\n' +
+                          '    }\n' +
+                          '\n' +
+                          '    .carousel-prev,\n' +
+                          '    .carousel-next {\n' +
+                          '        padding: 12px 16px;\n' +
+                          '        font-size: 1.5rem;\n' +
+                          '    }\n';
+    }
+
+    return '\n/* Responsive Design */\n' +
+           '@media (max-width: 768px) {\n' +
+           layoutResponsive +
+           '\n' +
+           '    .gallery-header h1 {\n' +
+           '        font-size: 2rem;\n' +
+           '    }\n' +
+           '\n' +
+           '    /* Lightbox responsive */\n' +
+           '    .lightbox-content {\n' +
+           '        max-width: 90vw;\n' +
+           '        max-height: 80vh;\n' +
+           '        margin: 10vh auto 2vh auto;\n' +
+           '        padding: 15px;\n' +
+           '        gap: 12px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-image-container {\n' +
+           '        flex: 7;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption {\n' +
+           '        flex: 3;\n' +
+           '        font-size: 1rem;\n' +
+           '        margin-top: 8px;\n' +
+           '        max-height: calc(90vh - 250px);\n' +
+           '        min-height: 50px;\n' +
+           '        scroll-behavior: smooth;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-prev {\n' +
+           '        left: 10px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-next {\n' +
+           '        right: 10px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption {\n' +
+           '        font-size: 1rem;\n' +
+           '        margin-top: 8px;\n' +
+           '        max-height: calc(90vh - 250px);\n' +
+           '        min-height: 50px;\n' +
+           '        scroll-behavior: smooth;\n' +
+           '    }\n' +
+           '\n' +
+           '    /* Tablet carousel */\n' +
+           '    .gallery-carousel {\n' +
+           '        height: calc(100vh - 120px);\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide {\n' +
+           '        height: 100%;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide img {\n' +
+           '        max-width: 100%;\n' +
+           '        max-height: 100%;\n' +
+           '        width: auto;\n' +
+           '        height: auto;\n' +
+           '        object-fit: contain;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-prev,\n' +
+           '    .carousel-next {\n' +
+           '        padding: 12px 16px;\n' +
+           '        font-size: 1.5rem;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-caption {\n' +
+           '        font-size: 1rem;\n' +
+           '    }\n' +
+           '}\n' +
+           '\n' +
+           '@media (max-width: 480px) {\n' +
+           '    .gallery-container {\n' +
+           '        padding: 10px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .gallery-header h1 {\n' +
+           '        font-size: 1.8rem;\n' +
+           '    }\n' +
+           '\n' +
+           '    /* Mobile lightbox */\n' +
+           '    .lightbox-content {\n' +
+           '        max-width: 95vw;\n' +
+           '        max-height: 85vh;\n' +
+           '        margin: 7.5vh auto 7.5vh auto;\n' +
+           '        padding: 12px;\n' +
+           '        gap: 10px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-image-container {\n' +
+           '        flex: 7;\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption {\n' +
+           '        flex: 3;\n' +
+           '        font-size: 0.9rem;\n' +
+           '        line-height: 1.3;\n' +
+           '        margin-top: 12px;\n' +
+           '        padding: 8px;\n' +
+           '        box-sizing: border-box;\n' +
+           '        word-wrap: break-word;\n' +
+           '        overflow-wrap: break-word;\n' +
+           '        max-height: calc(85vh - 200px);\n' +
+           '        min-height: 45px;\n' +
+           '        overflow-y: auto;\n' +
+           '        overflow-x: hidden;\n' +
+           '        scrollbar-width: thin;\n' +
+           '        scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.3);\n' +
+           '        scroll-behavior: smooth;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-prev {\n' +
+           '        left: 5px;\n' +
+           '        font-size: 1.5rem;\n' +
+           '        padding: 8px 12px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-next {\n' +
+           '        right: 5px;\n' +
+           '        font-size: 1.5rem;\n' +
+           '        padding: 8px 12px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption {\n' +
+           '        font-size: 0.9rem;\n' +
+           '        line-height: 1.3;\n' +
+           '        margin-top: 12px;\n' +
+           '        padding: 8px;\n' +
+           '        box-sizing: border-box;\n' +
+           '        word-wrap: break-word;\n' +
+           '        overflow-wrap: break-word;\n' +
+           '        max-height: calc(85vh - 200px);\n' +
+           '        min-height: 45px;\n' +
+           '        overflow-y: auto;\n' +
+           '        overflow-x: hidden;\n' +
+           '        scrollbar-width: thin;\n' +
+           '        scrollbar-color: rgba(255, 255, 255, 0.4) rgba(0, 0, 0, 0.3);\n' +
+           '        scroll-behavior: smooth;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption::-webkit-scrollbar {\n' +
+           '        width: 8px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption::-webkit-scrollbar-track {\n' +
+           '        background: rgba(0, 0, 0, 0.3);\n' +
+           '        border-radius: 4px;\n' +
+           '        margin: 1px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption::-webkit-scrollbar-thumb {\n' +
+           '        background: rgba(255, 255, 255, 0.4);\n' +
+           '        border-radius: 4px;\n' +
+           '        border: 1px solid rgba(0, 0, 0, 0.1);\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption::-webkit-scrollbar-thumb:hover {\n' +
+           '        background: rgba(255, 255, 255, 0.6);\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption::-webkit-scrollbar-thumb:active {\n' +
+           '        background: rgba(255, 255, 255, 0.7);\n' +
+           '    }\n' +
+           '\n' +
+           '    /* Ensure caption scrolling works on touch devices (mobile) */\n' +
+           '    .lightbox-caption {\n' +
+           '        -webkit-overflow-scrolling: touch;\n' +
+           '    }\n' +
+           '\n' +
+           '    /* Improve readability of long captions (mobile) */\n' +
+           '    .lightbox-caption p {\n' +
+           '        margin-bottom: 0.7em;\n' +
+           '    }\n' +
+           '\n' +
+           '    .lightbox-caption p:last-child {\n' +
+           '        margin-bottom: 0;\n' +
+           '    }\n' +
+           '\n' +
+           '    /* Mobile carousel */\n' +
+           '    .gallery-carousel {\n' +
+           '        height: calc(100vh - 110px);\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide {\n' +
+           '        height: 100%;\n' +
+           '        padding: 15px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide img {\n' +
+           '        max-width: 100%;\n' +
+           '        max-height: 100%;\n' +
+           '        width: auto;\n' +
+           '        height: auto;\n' +
+           '        object-fit: contain;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-prev,\n' +
+           '    .carousel-next {\n' +
+           '        padding: 10px 14px;\n' +
+           '        font-size: 1.2rem;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-bottom-bar {\n' +
+           '        padding: 15px;\n' +
+           '        gap: 10px;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-caption {\n' +
+           '        font-size: 1rem;\n' +
+           '        max-width: 95%;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-dot {\n' +
+           '        width: 12px;\n' +
+           '        height: 12px;\n' +
+           '    }\n' +
+           '}\n' +
+           '\n' +
+           '/* Portrait orientation - center landscape images vertically */\n' +
+           '@media (orientation: portrait) {\n' +
+           '    .gallery-carousel {\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '        height: calc(100vh - 200px);\n' +
+           '        margin-top: 20px;\n' +
+           '        margin-bottom: 0;\n' +
+           '        padding: 0;\n' +
+           '        box-sizing: border-box;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-container {\n' +
+           '        height: 100%;\n' +
+           '        width: 100%;\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide {\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '        height: 100%;\n' +
+           '        width: 100%;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide .gallery-item {\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '        width: 100%;\n' +
+           '        height: 100%;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide img {\n' +
+           '        max-width: 90vw;\n' +
+           '        max-height: calc(100vh - 220px);\n' +
+           '        width: auto;\n' +
+           '        height: auto;\n' +
+           '        object-fit: contain;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-prev,\n' +
+           '    .carousel-next {\n' +
+           '        top: calc(50vh - 100px);\n' +
+           '    }\n' +
+           '}\n' +
+           '\n' +
+           '/* Landscape orientation - optimize space usage */\n' +
+           '@media (orientation: landscape) {\n' +
+           '    .gallery-carousel {\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '        height: calc(100vh - 200px);\n' +
+           '        margin-top: 20px;\n' +
+           '        margin-bottom: 0;\n' +
+           '        padding: 0;\n' +
+           '        box-sizing: border-box;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-container {\n' +
+           '        height: 100%;\n' +
+           '        width: 100%;\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide {\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '        height: 100%;\n' +
+           '        width: 100%;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide .gallery-item {\n' +
+           '        display: flex;\n' +
+           '        align-items: center;\n' +
+           '        justify-content: center;\n' +
+           '        width: 100%;\n' +
+           '        height: 100%;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-slide img {\n' +
+           '        max-width: 90vw;\n' +
+           '        max-height: calc(100vh - 220px);\n' +
+           '        width: auto;\n' +
+           '        height: auto;\n' +
+           '        object-fit: contain;\n' +
+           '    }\n' +
+           '\n' +
+           '    .carousel-prev,\n' +
+           '    .carousel-next {\n' +
+           '        top: calc(50vh - 100px);\n' +
+           '    }\n' +
+           '}\n';
+}
+
+// JavaScript template
+function getJSTemplate(processedImages, config) {
+    var imageData = stringifyJSON(processedImages, 0);
+    var layoutType = config.galleryType || 'grid';
+
+    var carouselJS = '';
+    if (layoutType === 'carousel') {
+        carouselJS = '\n' +
+           '    // Carousel elements\n' +
+           '    var carouselTrack = document.querySelector(".carousel-track");\n' +
+           '    var carouselPrev = document.getElementById("carouselPrev");\n' +
+           '    var carouselNext = document.getElementById("carouselNext");\n' +
+           '    var carouselDots = document.getElementById("carouselDots");\n' +
+           '    var carouselCaption = document.getElementById("carouselCaption");\n' +
+           '    var currentSlide = 0;\n' +
+           '\n' +
+           '    // Setup carousel\n' +
+           '    function setupCarousel() {\n' +
+           '        if (carouselTrack && carouselPrev && carouselNext) {\n' +
+           '            createDots();\n' +
+           '            carouselPrev.addEventListener("click", showPrevSlide);\n' +
+           '            carouselNext.addEventListener("click", showNextSlide);\n' +
+           '            updateCarousel();\n' +
+           '        }\n' +
+           '    }\n' +
+           '\n' +
+           '    // Create dot indicators\n' +
+           '    function createDots() {\n' +
+           '        if (!carouselDots) return;\n' +
+           '        \n' +
+           '        carouselDots.innerHTML = "";\n' +
+           '        for (var i = 0; i < galleryImages.length; i++) {\n' +
+           '            var dot = document.createElement("div");\n' +
+           '            dot.className = "carousel-dot" + (i === 0 ? " active" : "");\n' +
+           '            dot.addEventListener("click", function(index) {\n' +
+           '                return function() { goToSlide(index); };\n' +
+           '            }(i));\n' +
+           '            carouselDots.appendChild(dot);\n' +
+           '        }\n' +
+           '    }\n' +
+           '\n' +
+           '    // Update carousel position\n' +
+           '    function updateCarousel() {\n' +
+           '        if (carouselTrack) {\n' +
+           '            carouselTrack.style.transform = "translateX(-" + (currentSlide * 100) + "%)";\n' +
+           '        }\n' +
+           '        \n' +
+           '        // Update caption display\n' +
+           '        if (carouselCaption && galleryImages[currentSlide]) {\n' +
+           '            carouselCaption.textContent = galleryImages[currentSlide].originalDescription || galleryImages[currentSlide].originalName;\n' +
+           '        }\n' +
+           '        \n' +
+           '        // Update dots\n' +
+           '        var dots = document.querySelectorAll(".carousel-dot");\n' +
+           '        dots.forEach(function(dot, index) {\n' +
+           '            dot.classList.toggle("active", index === currentSlide);\n' +
+           '        });\n' +
+           '    }\n' +
+           '\n' +
+           '    // Show previous slide\n' +
+           '    function showPrevSlide() {\n' +
+           '        currentSlide = (currentSlide - 1 + galleryImages.length) % galleryImages.length;\n' +
+           '        updateCarousel();\n' +
+           '    }\n' +
+           '\n' +
+           '    // Show next slide\n' +
+           '    function showNextSlide() {\n' +
+           '        currentSlide = (currentSlide + 1) % galleryImages.length;\n' +
+           '        updateCarousel();\n' +
+           '    }\n' +
+           '\n' +
+           '    // Go to specific slide\n' +
+           '    function goToSlide(index) {\n' +
+           '        currentSlide = index;\n' +
+           '        updateCarousel();\n' +
+           '    }\n' +
+           '\n' +
+           '    // Auto-play functionality (optional)\n' +
+           '    var autoplayInterval;\n' +
+           '    function startAutoplay() {\n' +
+           '        autoplayInterval = setInterval(showNextSlide, ' + (config.carouselSpeed || 4000) + ');\n' +
+           '    }\n' +
+           '    \n' +
+           '    function stopAutoplay() {\n' +
+           '        clearInterval(autoplayInterval);\n' +
+           '    }\n';
+    }
+
+    var initCarousel = '';
+    if (layoutType === 'carousel') {
+        initCarousel = '\n' +
+           '        setupCarousel();\n' +
+           '        startAutoplay();\n' +
+           '\n' +
+           '        // Pause autoplay on hover\n' +
+           '        var carouselContainer = document.querySelector(".gallery-carousel");\n' +
+           '        if (carouselContainer) {\n' +
+           '            carouselContainer.addEventListener("mouseenter", stopAutoplay);\n' +
+           '            carouselContainer.addEventListener("mouseleave", startAutoplay);\n' +
+           '        }';
+    }
+
+    var masonryJS = '';
+    if (layoutType === 'masonry') {
+        masonryJS = '\n' +
+           '    // Simple masonry layout using CSS columns - no JavaScript needed!\n' +
+           '    function setupMasonry() {\n' +
+           '        console.log("Masonry layout using CSS columns - ready!");\n' +
+           '        \n' +
+           '        var masonryContainer = galleryGrid || document.querySelector(".gallery-masonry");\n' +
+           '        if (!masonryContainer) {\n' +
+           '            console.log("Masonry container not found");\n' +
+           '            return;\n' +
+           '        }\n' +
+           '        \n' +
+           '        console.log("Masonry container found with " + masonryContainer.querySelectorAll(".gallery-item").length + " items");\n' +
+           '        console.log("Using CSS columns for masonry layout");\n' +
+           '    }\n';
+    }
+
+    var initMasonry = '';
+    if (layoutType === 'masonry') {
+        initMasonry = '\n' +
+           '        console.log("Calling setupMasonry...");\n' +
+           '        setupMasonry();';
+    }
+
+    return '// Photo Gallery JavaScript\n' +
+           '\n' +
+           '(function() {\n' +
+           '    "use strict";\n' +
+           '\n' +
+           '    // Debug: Confirm JavaScript is running\n' +
+           '    console.log("Photo Gallery JavaScript loaded and executing");\n' +
+           '    console.log("Gallery layout type: ' + layoutType + '");\n' +
+           '\n' +
+           '    // Gallery data\n' +
+           '    var galleryImages = ' + imageData + ';\n' +
+           '    var currentImageIndex = 0;\n' +
+           '\n' +
+           '    // DOM elements\n' +
+           '    var galleryGrid = document.getElementById("galleryGrid");\n' +
+           '    var lightbox = document.getElementById("lightbox");\n' +
+           '    var lightboxImage = document.getElementById("lightboxImage");\n' +
+           '    var lightboxCaption = document.getElementById("lightboxCaption");\n' +
+           '    var lightboxOverlay = document.getElementById("lightboxOverlay");\n' +
+           '    var lightboxClose = document.getElementById("lightboxClose");\n' +
+           '    var lightboxPrev = document.getElementById("lightboxPrev");\n' +
+           '    var lightboxNext = document.getElementById("lightboxNext");\n' +
+           carouselJS +
+           masonryJS +
+           '\n' +
+           '    // Initialize gallery\n' +
+           '    function initGallery() {\n' +
+           '        console.log("Initializing gallery...");\n' +
+           '        console.log("Gallery grid element:", galleryGrid);\n' +
+           '        \n' +
+           '        // Setup gallery events for any layout type\n' +
+           '        setupGalleryEvents();\n' +
+           '\n' +
+           '        if (lightbox) {\n' +
+           '            setupLightboxEvents();\n' +
+           '        }\n' +
+           initCarousel +
+           initMasonry +
+           '    }\n' +
+           '\n' +
+           '    // Setup gallery click events\n' +
+           '    function setupGalleryEvents() {\n' +
+           '        // Find gallery items from any layout type\n' +
+           '        var galleryContainer = galleryGrid || document.querySelector(".gallery-masonry") || document.querySelector(".gallery-carousel");\n' +
+           '        if (!galleryContainer) {\n' +
+           '            console.log("No gallery container found");\n' +
+           '            return;\n' +
+           '        }\n' +
+           '        \n' +
+           '        var galleryItems = galleryContainer.querySelectorAll(".gallery-item");\n' +
+           '        console.log("Found " + galleryItems.length + " gallery items");\n' +
+           '\n' +
+           '        galleryItems.forEach(function(item, index) {\n' +
+           '            item.addEventListener("click", function() {\n' +
+           '                openLightbox(index);\n' +
+           '            });\n' +
+           '        });\n' +
+           '    }\n' +
+           '\n' +
+           '    // Setup lightbox events\n' +
+           '    function setupLightboxEvents() {\n' +
+           '        if (lightboxOverlay) {\n' +
+           '            lightboxOverlay.addEventListener("click", closeLightbox);\n' +
+           '        }\n' +
+           '\n' +
+           '        if (lightboxClose) {\n' +
+           '            lightboxClose.addEventListener("click", closeLightbox);\n' +
+           '        }\n' +
+           '\n' +
+           '        if (lightboxPrev) {\n' +
+           '            lightboxPrev.addEventListener("click", showPreviousImage);\n' +
+           '        }\n' +
+           '\n' +
+           '        if (lightboxNext) {\n' +
+           '            lightboxNext.addEventListener("click", showNextImage);\n' +
+           '        }\n' +
+           '\n' +
+           '        // Keyboard navigation\n' +
+           '        document.addEventListener("keydown", function(e) {\n' +
+           '            if (!lightbox.classList.contains("active")) return;\n' +
+           '\n' +
+           '            switch(e.key) {\n' +
+           '                case "Escape":\n' +
+           '                    closeLightbox();\n' +
+           '                    break;\n' +
+           '                case "ArrowLeft":\n' +
+           '                    showPreviousImage();\n' +
+           '                    break;\n' +
+           '                case "ArrowRight":\n' +
+           '                    showNextImage();\n' +
+           '                    break;\n' +
+           '            }\n' +
+           '        });\n' +
+           '    }\n' +
+           '\n' +
+           '    // Open lightbox with specific image\n' +
+           '    function openLightbox(index) {\n' +
+           '        currentImageIndex = index;\n' +
+           '        updateLightboxImage();\n' +
+           '        lightbox.classList.add("active");\n' +
+           '        document.body.style.overflow = "hidden";\n' +
+           '    }\n' +
+           '\n' +
+           '    // Close lightbox\n' +
+           '    function closeLightbox() {\n' +
+           '        lightbox.classList.remove("active");\n' +
+           '        document.body.style.overflow = "";\n' +
+           '    }\n' +
+           '\n' +
+           '    // Show previous image\n' +
+           '    function showPreviousImage() {\n' +
+           '        currentImageIndex = (currentImageIndex - 1 + galleryImages.length) % galleryImages.length;\n' +
+           '        updateLightboxImage();\n' +
+           '    }\n' +
+           '\n' +
+           '    // Show next image\n' +
+           '    function showNextImage() {\n' +
+           '        currentImageIndex = (currentImageIndex + 1) % galleryImages.length;\n' +
+           '        updateLightboxImage();\n' +
+           '    }\n' +
+           '\n' +
+           '    // Update lightbox image and caption\n' +
+           '    function updateLightboxImage() {\n' +
+           '        var image = galleryImages[currentImageIndex];\n' +
+           '        if (image && lightboxImage && lightboxCaption) {\n' +
+           '            // Set image source correctly\n' +
+           '            var imagePath = "images/" + image.fileName;\n' +
+           '            lightboxImage.src = imagePath;\n' +
+           '            lightboxImage.alt = image?.originalDescription ? image.originalDescription : image.originalName;\n' +
+           '\n' +
+           '            // Set caption content with better formatting for scrolling\n' +
+           '            var captionText = image?.originalDescription ? image.originalDescription : image.originalName + " (" + (currentImageIndex + 1) + " of " + galleryImages.length + ")";\n' +
+           '            lightboxCaption.innerHTML = "<div>" + captionText.replace(/\\n/g, "</div><div>") + "</div>";\n' +
+           '\n' +
+           '            // Reset scroll position to top when changing images\n' +
+           '            lightboxCaption.scrollTop = 0;\n' +
+           '\n' +
+           '            // Force layout recalculation for proper scrolling\n' +
+           '            setTimeout(function() {\n' +
+           '                // Ensure proper flexbox layout\n' +
+           '                if (lightboxCaption) {\n' +
+           '                    if (lightboxCaption.scrollHeight > lightboxCaption.clientHeight) {\n' +
+           '                        lightboxCaption.style.overflowY = "auto";\n' +
+           '                    } else {\n' +
+           '                        lightboxCaption.style.overflowY = "auto"; // Keep scrollable for consistency\n' +
+           '                    }\n' +
+           '                }\n' +
+           '            }, 100);\n' +
+           '        }\n' +
+           '    }\n' +
+           '\n' +
+           '    // Initialize when DOM is ready\n' +
+           '    if (document.readyState === "loading") {\n' +
+           '        document.addEventListener("DOMContentLoaded", initGallery);\n' +
+           '    } else {\n' +
+           '        initGallery();\n' +
+           '    }\n' +
+           '\n' +
+           '    // Public API (for potential future extensions)\n' +
+           '    window.PhotoGallery = {\n' +
+           '        openLightbox: openLightbox,\n' +
+           '        closeLightbox: closeLightbox,\n' +
+           '        getCurrentImageIndex: function() { return currentImageIndex; },\n' +
+           '        getImageCount: function() { return galleryImages.length; }\n' +
+           '    };\n' +
+           '\n' +
+           '})();';
+}
+
+// README template
+function getReadmeTemplate(processedImages, config) {
+    var dateGenerated = new Date().toLocaleString();
+
+    return '# ' + (config.galleryName || 'Photo Gallery') + '\n' +
+           '\n' +
+           'Generated by Adobe Bridge Photo Gallery Generator on ' + dateGenerated + '\n' +
+           '\n' +
+           '## Gallery Information\n' +
+           '\n' +
+           '- **Images**: ' + processedImages.length + '\n' +
+           '- **Layout**: ' + (config.galleryType || 'Grid') + '\n' +
+           '- **Columns**: ' + (config.columns || 3) + '\n' +
+           '- **Responsive**: ' + (config.responsive ? 'Yes' : 'No') + '\n' +
+           '- **Lightbox**: ' + (config.includeLightbox ? 'Yes' : 'No') + '\n' +
+           '\n' +
+           '## Image Settings\n' +
+           '\n' +
+           '- **Max Width**: ' + (config.maxImageWidth || 800) + 'px\n' +
+           '- **Max Height**: ' + (config.maxImageHeight || 600) + 'px\n' +
+           '- **JPG Quality**: ' + (config.jpgQuality || 85) + '%\n' +
+           '\n' +
+           '## Files\n' +
+           '\n' +
+           '- `index.html` - Main gallery page\n' +
+           '- `style.css` - Gallery styling\n' +
+           '- `script.js` - Interactive features\n' +
+           '- `images/` - Optimized images\n' +
+           '- `README.txt` - This documentation\n' +
+           '\n' +
+           '## Usage\n' +
+           '\n' +
+           'Open `index.html` in any modern web browser to view your photo gallery.\n' +
+           '\n' +
+           '## Features\n' +
+           '\n' +
+           '- Responsive design that works on all devices\n' +
+           '- Click images to view them in full-screen lightbox\n' +
+           '- Keyboard navigation (arrow keys, escape)\n' +
+           '- Smooth animations and hover effects\n' +
+           '- Mobile-friendly touch interface\n' +
+           '\n' +
+           '## Browser Compatibility\n' +
+           '\n' +
+           '- Chrome 60+\n' +
+           '- Firefox 55+\n' +
+           '- Safari 12+\n' +
+           '- Edge 79+\n' +
+           '\n' +
+           '## Technical Details\n' +
+           '\n' +
+           '- Generated using Adobe Bridge ExtendScript\n' +
+           '- HTML5, CSS3, and ES6 JavaScript\n' +
+           '- No external dependencies\n' +
+           '- Optimized for web performance\n' +
+           '\n' +
+           '---\n' +
+           '\n' +
+           'Generated by Bridge Photo Gallery Generator v1.0';
+}

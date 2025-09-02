@@ -1,0 +1,485 @@
+/**
+ * Photo Gallery Generator - Dialog Components
+ * ScriptUI dialog components for the Bridge photo gallery generator
+ */
+
+// Show the main gallery configuration dialog
+function showGalleryConfigDialog() {
+    var config = getDefaultConfig();
+
+    var dialog = new Window('dialog', 'Photo Gallery Generator - Settings');
+    dialog.alignChildren = ['fill', 'top'];
+    dialog.preferredSize = [400, 350];
+
+    // Gallery Name Section
+    var nameGroup = dialog.add('group');
+    nameGroup.add('statictext', undefined, 'Gallery Name:');
+    var nameInput = nameGroup.add('edittext', undefined, 'Photo Gallery');
+    nameInput.preferredSize = [200, 25];
+
+    // Gallery Type Section
+    var typeGroup = dialog.add('group');
+    typeGroup.add('statictext', undefined, 'Gallery Layout:');
+
+    var typeDropdown = typeGroup.add('dropdownlist', undefined,
+        ['Grid', 'Masonry', 'Carousel']);
+    typeDropdown.selection = 0;
+    typeDropdown.preferredSize = [150, 25];
+
+    // Grid Container Type
+    var containerGroup = dialog.add('group');
+    containerGroup.add('statictext', undefined, 'Grid Container:');
+
+    var containerDropdown = containerGroup.add('dropdownlist', undefined,
+        ['Full Size', 'Square']);
+    containerDropdown.selection = 0; // Default to Full Size
+    containerDropdown.preferredSize = [100, 25];
+
+
+    // Option for whether to use Title/Description
+    // Gallery Type Section
+    var titleGroup = dialog.add('panel', undefined, 'Caption Text Options');
+    titleGroup.alignChildren = ['left', 'top'];
+    titleGroup.margins = 10;
+    var titleInstructions = titleGroup.add('statictext', undefined, 'You can choose whether to display image Title, Description, or File name in the captions below each image. The Title and Description are taken from the metadata of each image file (if available). The precedence order determines which text is displayed if multiple metadata properties are available. If none are available, the file name will be used as a fallback.', {
+        multiline: true
+    });
+    titleInstructions.preferredSize = [360, 90];
+
+
+    var titleDropdown = titleGroup.add('dropdownlist', undefined,
+        ['Title->Description->File name', 'Description->Title->File name', 'File name Only']);
+    titleDropdown.selection = 0;
+    titleDropdown.preferredSize = [300, 25];
+
+    // Grid Settings
+    var gridGroup = dialog.add('group');
+    gridGroup.add('statictext', undefined, 'Columns:');
+
+    var columnsDropdown = gridGroup.add('dropdownlist', undefined,
+        ['1', '2', '3', '4', '5', '6']);
+    columnsDropdown.selection = 2; // Default to 3 columns
+    columnsDropdown.preferredSize = [60, 25];
+
+    // Carousel Settings
+    var carouselGroup = dialog.add('group');
+    carouselGroup.add('statictext', undefined, 'Carousel Speed:');
+
+    var carouselSpeedDropdown = carouselGroup.add('dropdownlist', undefined,
+        ['2 seconds', '3 seconds', '4 seconds', '5 seconds', '6 seconds', '8 seconds', '10 seconds', '12 seconds']);
+    carouselSpeedDropdown.selection = 3; // Default to 4 seconds
+    carouselSpeedDropdown.preferredSize = [100, 25];
+
+    // Function to show/hide layout-specific controls
+    function updateLayoutControlsVisibility() {
+        var selectedLayout = typeDropdown.selection ? typeDropdown.selection.text : 'Grid';
+        var isGridLayout = selectedLayout === 'Grid';
+        var isCarouselLayout = selectedLayout === 'Carousel';
+        
+        // Show/hide grid-specific controls
+        gridGroup.visible = isGridLayout;
+        containerGroup.visible = isGridLayout;
+        
+        // Show/hide carousel-specific controls
+        carouselGroup.visible = isCarouselLayout;
+    }
+
+    // Set initial visibility
+    updateLayoutControlsVisibility();
+
+    // Image Settings
+    var imageGroup = dialog.add('panel', undefined, 'Image Settings');
+    imageGroup.alignChildren = ['left', 'top'];
+    imageGroup.margins = 10;
+
+    var widthGroup = imageGroup.add('group');
+    widthGroup.add('statictext', undefined, 'Max Width (px):');
+    var widthInput = widthGroup.add('edittext', undefined, '800');
+    widthInput.preferredSize = [80, 25];
+
+    var heightGroup = imageGroup.add('group');
+    heightGroup.add('statictext', undefined, 'Max Height (px):');
+    var heightInput = heightGroup.add('edittext', undefined, '600');
+    heightInput.preferredSize = [80, 25];
+
+    var qualityGroup = imageGroup.add('group');
+    qualityGroup.add('statictext', undefined, 'JPG Quality (1-100):');
+    var qualityInput = qualityGroup.add('edittext', undefined, '85');
+    qualityInput.preferredSize = [80, 25];
+
+    // Output Settings
+    var outputGroup = dialog.add('panel', undefined, 'Output Folder');
+    outputGroup.alignChildren = ['fill', 'top'];
+    outputGroup.margins = 10;
+
+    var folderLabel = outputGroup.add('statictext', undefined, 'Select Output Folder:');
+    folderLabel.alignment = 'left';
+
+    var pathGroup = outputGroup.add('group');
+    var pathInput = pathGroup.add('edittext', undefined, '');
+    pathInput.preferredSize = [250, 25];
+
+    var browseBtn = pathGroup.add('button', undefined, 'Browse...');
+    browseBtn.preferredSize = [80, 25];
+
+    // Options
+    var optionsGroup = dialog.add('panel', undefined, 'Options');
+    optionsGroup.alignChildren = ['left', 'top'];
+    optionsGroup.margins = 10;
+
+    var lightboxCheckbox = optionsGroup.add('checkbox', undefined, 'Include lightbox viewer');
+    lightboxCheckbox.value = true;
+
+    var responsiveCheckbox = optionsGroup.add('checkbox', undefined, 'Responsive design');
+    responsiveCheckbox.value = true;
+
+    // Buttons (using standard dialog button system)
+    dialog.cancelBtn = dialog.add('button', undefined, 'Cancel', {
+        name: 'cancel'
+    });
+    dialog.generateBtn = dialog.add('button', undefined, 'Generate Gallery', {
+        name: 'ok'
+    });
+    dialog.generateBtn.enabled = false; // Initially disabled until path is selected
+
+    // Event handlers - merged with layout visibility update
+    typeDropdown.onChange = function() {
+        updateLayoutControlsVisibility();
+    };
+
+    browseBtn.onClick = function() {
+        var folder = selectOutputFolder();
+        if (folder) {
+            pathInput.text = folder.fsName;
+            dialog.generateBtn.enabled = true;
+        }
+    };
+
+    pathInput.onChange = function() {
+        dialog.generateBtn.enabled = pathInput.text.length > 0;
+    };
+
+    // Event handlers (removed onclick handlers - let ScriptUI handle button clicks)
+
+    // Show dialog
+    var result = dialog.show();
+    if (result === 1) { // OK button pressed (Generate Gallery)
+        try {
+            // Validate inputs after dialog is confirmed
+            var width = parseInt(widthInput.text);
+            var height = parseInt(heightInput.text);
+            var quality = parseInt(qualityInput.text);
+
+            if (isNaN(width) || width < 100 || width > 4000) {
+                alert('Please enter a valid width between 100 and 4000 pixels.');
+                return null;
+            }
+
+            if (isNaN(height) || height < 100 || height > 4000) {
+                alert('Please enter a valid height between 100 and 4000 pixels.');
+                return null;
+            }
+
+            if (isNaN(quality) || quality < 1 || quality > 100) {
+                alert('Please enter a valid JPG quality between 1 and 100.');
+                return null;
+            }
+
+            // Validate output path
+            var outputFolder = new Folder(pathInput.text);
+            validateOutputFolder(outputFolder);
+            
+            // Check for existing files and show confirmation if needed
+            if (checkForExistingGalleryFiles(outputFolder)) {
+                var overwriteChoice = showFolderOverwriteDialog(outputFolder.fsName);
+                
+                if (overwriteChoice === 1) {
+                    // User chose "Choose Different Folder" - reopen folder dialog
+                    var newFolder = selectOutputFolder();
+                    if (newFolder) {
+                        pathInput.text = newFolder.fsName;
+                        outputFolder = newFolder;
+                        validateOutputFolder(outputFolder);
+                        
+                        // Check again for the new folder
+                        if (checkForExistingGalleryFiles(outputFolder)) {
+                            var secondChoice = showFolderOverwriteDialog(outputFolder.fsName);
+                            if (secondChoice !== 2) {
+                                return null; // User cancelled or chose different folder again
+                            }
+                        }
+                    } else {
+                        return null; // User cancelled folder selection
+                    }
+                } else if (overwriteChoice === 3) {
+                    // User cancelled
+                    return null;
+                }
+                // If overwriteChoice === 2, user chose "Proceed Anyway", continue normally
+            }
+
+            // Build configuration object
+            config.galleryName = nameInput.text || 'Photo Gallery';
+            config.galleryType = typeDropdown.selection.text.toLowerCase();
+            config.titleType = titleDropdown.selection.text || 'Title->Description->File name';
+            // Only set layout-specific settings based on selected layout
+            var isGridLayout = typeDropdown.selection.text === 'Grid';
+            var isCarouselLayout = typeDropdown.selection.text === 'Carousel';
+            config.columns = isGridLayout ? parseInt(columnsDropdown.selection.text) : 3;
+            config.gridContainerType = isGridLayout ? containerDropdown.selection.text.toLowerCase() : 'full size';
+            
+            // Set carousel speed (convert text to milliseconds)
+            if (isCarouselLayout) {
+                var speedText = carouselSpeedDropdown.selection.text;
+                var speedSeconds = parseInt(speedText.split(' ')[0]);
+                config.carouselSpeed = speedSeconds * 1000; // Convert to milliseconds
+            } else {
+                config.carouselSpeed = 4000; // Default 4 seconds
+            }
+            config.maxImageWidth = width;
+            config.maxImageHeight = height;
+            config.jpgQuality = quality;
+            config.outputPath = pathInput.text;
+            config.includeLightbox = lightboxCheckbox.value;
+            config.responsive = responsiveCheckbox.value;
+
+            validateConfig(config);
+
+            return config;
+
+        } catch (error) {
+            alert('Configuration error: ' + error.message);
+            return null;
+        }
+    }
+
+    return null; // Cancelled or dialog dismissed
+}
+
+// Show progress dialog for gallery generation
+function showProgressDialog(totalImages) {
+    var progressWindow = new Window('palette', 'Generating Photo Gallery');
+    progressWindow.alignChildren = ['fill', 'top'];
+
+    var progressGroup = progressWindow.add('group');
+    progressGroup.add('statictext', undefined, 'Processing images...');
+
+    var progressBar = progressGroup.add('progressbar', undefined, 0, totalImages);
+    progressBar.preferredSize = [300, 20];
+
+    var statusText = progressWindow.add('statictext', undefined, 'Initializing...');
+    statusText.preferredSize = [300, 40];
+
+    var cancelBtn = progressWindow.add('button', undefined, 'Cancel');
+    cancelBtn.alignment = 'center';
+
+    var isCancelled = false;
+
+    cancelBtn.onClick = function() {
+        isCancelled = true;
+        progressWindow.close();
+    };
+
+    progressWindow.updateProgress = function(current, message) {
+        if (isCancelled) return;
+
+        progressBar.value = current;
+        statusText.text = message || ('Processing image ' + current + ' of ' + totalImages);
+
+        // Force UI update
+        progressWindow.update();
+        // Allow UI to process events (ExtendScript compatible)
+        $.sleep(1);
+    };
+
+    progressWindow.isCancelled = function() {
+        return isCancelled;
+    };
+
+    progressWindow.show();
+
+    return progressWindow;
+}
+
+// Show completion message with gallery details
+function showCompletionMessage(outputFolder, imageCount, config) {
+    var galleryName = (config && config.galleryName) ? config.galleryName : 'Photo Gallery';
+
+    var dialog = new Window('dialog', 'Gallery Generated Successfully!');
+    dialog.alignChildren = ['fill', 'top'];
+    dialog.preferredSize = [500, 350];
+
+    // Success message
+    var messageGroup = dialog.add('panel', undefined, 'Gallery Details');
+    messageGroup.alignChildren = ['left', 'top'];
+    messageGroup.margins = 15;
+    messageGroup.preferredSize = [480, 280];
+
+    var successText = messageGroup.add('statictext', undefined, 'Photo gallery "' + galleryName + '" generated successfully!');
+    successText.graphics.font = ScriptUI.newFont(successText.graphics.font.name, ScriptUI.FontStyle.BOLD, successText.graphics.font.size);
+
+    // messageGroup.add('statictext', undefined, '');
+    // messageGroup.add('statictext', undefined, 'Images processed: ' + imageCount);
+
+    // var folderText = messageGroup.add('statictext', undefined, 'Output folder: ' + outputFolder.fsName);
+    // folderText.preferredSize = [460, 20];
+    var processMessage = '\nImages processed: ' + imageCount + '\n\n';
+    processMessage += 'Output folder: ' + outputFolder.fsName + '\n\n';
+    processMessage += 'Files created:\n';
+    processMessage += '  - index.html - Main gallery page\n';
+    processMessage += '  - style.css - Gallery styling\n';
+    processMessage += '  - script.js - Interactive features\n';
+    processMessage += '  - images/ - Optimized images folder\n';
+    processMessage += '  - README.txt - Gallery documentation';
+    var processMessageUI = messageGroup.add('statictext', undefined, processMessage, {
+        multiline: true
+    });
+    processMessageUI.preferredSize = [460, 200];
+
+    // Buttons
+    var buttonGroup = dialog.add('group');
+    buttonGroup.alignment = 'center';
+    buttonGroup.spacing = 10;
+
+    var previewBtn = buttonGroup.add('button', undefined, 'Preview Gallery');
+    previewBtn.preferredSize = [120, 30];
+
+    var closeBtn = buttonGroup.add('button', undefined, 'Close');
+    closeBtn.preferredSize = [80, 30];
+
+    // Event handlers
+    previewBtn.onClick = function() {
+        openGalleryInBrowser(outputFolder);
+        dialog.close();
+    };
+
+    closeBtn.onClick = function() {
+        dialog.close();
+    };
+
+    dialog.show();
+}
+
+// Show error dialog with details
+function showErrorDialog(title, message, details) {
+    var dialog = new Window('dialog', title);
+    dialog.alignChildren = ['fill', 'top'];
+
+    var messageText = dialog.add('statictext', undefined, message, {
+        multiline: true
+    });
+    messageText.preferredSize = [300, 60];
+
+    if (details) {
+        var detailsGroup = dialog.add('panel', undefined, 'Details');
+        var detailsText = detailsGroup.add('statictext', undefined, details, {
+            multiline: true
+        });
+        detailsText.preferredSize = [280, 80];
+    }
+
+    var buttonGroup = dialog.add('group');
+    buttonGroup.alignment = 'center';
+    buttonGroup.add('button', undefined, 'OK');
+
+    dialog.show();
+}
+
+// Show confirmation dialog
+function showConfirmDialog(title, message) {
+    var dialog = new Window('dialog', title);
+    dialog.alignChildren = ['fill', 'top'];
+
+    var messageText = dialog.add('statictext', undefined, message, {
+        multiline: true
+    });
+    messageText.preferredSize = [300, 40];
+
+    var buttonGroup = dialog.add('group');
+    buttonGroup.alignment = 'right';
+    buttonGroup.add('button', undefined, 'Cancel');
+    buttonGroup.add('button', undefined, 'OK');
+
+    var result = dialog.show();
+
+    return result === 1; // 1 = OK, 2 = Cancel
+}
+
+// Show folder overwrite confirmation dialog
+function showFolderOverwriteDialog(folderPath) {
+    var dialog = new Window('dialog', 'Files Already Exist');
+    dialog.alignChildren = ['fill', 'top'];
+    dialog.preferredSize = [450, 200];
+
+    // Warning message
+    var messageGroup = dialog.add('panel', undefined, 'Warning');
+    messageGroup.alignChildren = ['left', 'top'];
+    messageGroup.margins = 15;
+
+    var warningText = messageGroup.add('statictext', undefined, 'The selected folder already contains gallery files or images that may be overwritten:', {
+        multiline: true
+    });
+    warningText.preferredSize = [400, 40];
+
+    var folderText = messageGroup.add('statictext', undefined, folderPath, {
+        multiline: true
+    });
+    folderText.preferredSize = [400, 30];
+    folderText.graphics.font = ScriptUI.newFont(folderText.graphics.font.name, ScriptUI.FontStyle.BOLD, folderText.graphics.font.size);
+
+    var choiceText = messageGroup.add('statictext', undefined, 'What would you like to do?', {
+        multiline: true
+    });
+    choiceText.preferredSize = [400, 20];
+
+    // Buttons
+    var buttonGroup = dialog.add('group');
+    buttonGroup.alignment = 'center';
+    buttonGroup.spacing = 10;
+
+    var chooseFolderBtn = buttonGroup.add('button', undefined, 'Choose Different Folder');
+    chooseFolderBtn.preferredSize = [150, 30];
+
+    var proceedBtn = buttonGroup.add('button', undefined, 'Proceed Anyway');
+    proceedBtn.preferredSize = [120, 30];
+
+    var cancelBtn = buttonGroup.add('button', undefined, 'Cancel');
+    cancelBtn.preferredSize = [80, 30];
+
+    // Button results: 1 = Choose Different Folder, 2 = Proceed Anyway, 3 = Cancel
+    chooseFolderBtn.onClick = function() {
+        dialog.close(1);
+    };
+
+    proceedBtn.onClick = function() {
+        dialog.close(2);
+    };
+
+    cancelBtn.onClick = function() {
+        dialog.close(3);
+    };
+
+    return dialog.show();
+}
+
+// Show about dialog
+function showAboutDialog() {
+    var dialog = new Window('dialog', 'About Photo Gallery Generator');
+    dialog.alignChildren = ['fill', 'top'];
+
+    var infoGroup = dialog.add('group');
+    infoGroup.orientation = 'column';
+    infoGroup.alignChildren = ['left', 'top'];
+
+    infoGroup.add('statictext', undefined, 'Photo Gallery Generator v1.0');
+    infoGroup.add('statictext', undefined, 'Adobe Bridge ExtendScript Application');
+    infoGroup.add('statictext', undefined, '');
+    infoGroup.add('statictext', undefined, 'Generates responsive HTML photo galleries');
+    infoGroup.add('statictext', undefined, 'from selected images in Adobe Bridge.');
+
+    var buttonGroup = dialog.add('group');
+    buttonGroup.alignment = 'center';
+    buttonGroup.add('button', undefined, 'OK');
+
+    dialog.show();
+}

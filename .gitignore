@@ -1,0 +1,69 @@
+# Adobe Bridge ExtendScript Project - .gitignore
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Build artifacts (keep the main ones, ignore temp builds)
+zxp-temp/
+*.zxp.bak
+build-temp/
+
+# macOS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+logs/
+
+# Test output and generated galleries (for development testing)
+test-output/
+sample-gallery/
+debug-gallery/
+
+# Personal development notes
+NOTES.md
+TODO.md
+DEVLOG.md
+
+# Certificate private keys (keep build commands but not sensitive data)
+certificate/*.p12
+certificate/*.key
+certificate/private/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Node.js (if using any build tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Generated documentation
+docs/generated/

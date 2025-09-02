@@ -1,0 +1,438 @@
+/**
+ * Photo Gallery Generator - Utility Functions
+ * Shared utility functions for the Bridge photo gallery generator
+ */
+
+// Utility function to check if an array contains an element (ExtendScript compatible)
+function arrayContains(array, element) {
+    for (var i = 0; i < array.length; i++) {
+        if (array[i] === element) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Utility function to safely get selected files from Bridge
+function getSelectedImageFiles() {
+    var selectedThumbs = [];
+    var selectedFiles = [];
+
+    try {
+        if (app.document && app.document.selections) {
+            selectedThumbs = app.document.selections;
+        }
+
+        // Convert thumbnails to files and validate
+        for (var i = 0; i < selectedThumbs.length; i++) {
+            var thumb = selectedThumbs[i];
+            if (thumb && thumb.spec && thumb.spec instanceof File) {
+                var file = thumb.spec;
+                file.metadata = thumb.metadata;
+                if (isValidImageFile(file)) {
+                    selectedFiles.push(file);
+                }
+            }
+        }
+
+    } catch (error) {
+        alert('Error accessing selected files: ' + error.message);
+    }
+
+    return selectedFiles;
+}
+
+// Validate if a file is a supported image format
+function isValidImageFile(file) {
+    if (!(file instanceof File) || !file.exists) {
+        return false;
+    }
+
+    var validExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.tif', '.psd', '.pdf'];
+    var fileName = file.name.toLowerCase();
+    var extension = fileName.substr(fileName.lastIndexOf('.'));
+
+    return arrayContains(validExtensions, extension);
+}
+
+// Safely copy a file with error handling
+function copyFileToFolder(sourceFile, targetFolder, newName) {
+    try {
+        var targetName = newName || sourceFile.name;
+        var targetFile = new File(targetFolder + '/' + targetName);
+
+        if (sourceFile.copy(targetFile)) {
+            return targetFile;
+        } else {
+            throw new Error('Failed to copy file: ' + sourceFile.name);
+        }
+    } catch (error) {
+        alert('File copy error: ' + error.message);
+        return null;
+    }
+}
+
+// Create a folder if it doesn't exist
+function ensureFolderExists(folderPath) {
+    var folder = new Folder(folderPath);
+    if (!folder.exists) {
+        if (!folder.create()) {
+            throw new Error('Failed to create folder: ' + folderPath);
+        }
+    }
+    return folder;
+}
+
+// Generate optimized filename for processed images
+function getOptimizedFileName(originalName, format) {
+    var format = format || 'jpg';
+    var baseName = originalName.substr(0, originalName.lastIndexOf('.'));
+    var cleanName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    return cleanName + '_opt.' + format;
+}
+
+// Format file size in human readable format
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+
+    var k = 1024;
+    var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Get image dimensions (simplified - would need Bridge API for full implementation)
+function getImageInfo(file) {
+    // This is a placeholder - in a real implementation you'd use Bridge's
+    // thumbnail or metadata APIs to get actual dimensions
+    return {
+        width: 800,  // Default assumption
+        height: 600,
+        fileSize: file.length,
+        format: getFileExtension(file.name)
+    };
+}
+
+// Extract file extension
+function getFileExtension(filename) {
+    return filename.substr(filename.lastIndexOf('.')).toLowerCase();
+}
+
+// Safe folder selection dialog
+function selectOutputFolder() {
+    try {
+        var folder = Folder.selectDialog('Choose output folder for photo gallery:');
+        return folder;
+    } catch (error) {
+        alert('Error selecting folder: ' + error.message);
+        return null;
+    }
+}
+
+// Check if folder contains gallery files
+function checkForExistingGalleryFiles(folder) {
+    if (!folder || !folder.exists) {
+        return false;
+    }
+    
+    var galleryFiles = ['index.html', 'style.css', 'script.js'];
+    var imagesFolder = new Folder(folder + '/images');
+    
+    // Check for main gallery files
+    for (var i = 0; i < galleryFiles.length; i++) {
+        var file = new File(folder + '/' + galleryFiles[i]);
+        if (file.exists) {
+            return true;
+        }
+    }
+    
+    // Check for images folder with contents
+    if (imagesFolder.exists) {
+        var imageFiles = imagesFolder.getFiles();
+        if (imageFiles && imageFiles.length > 0) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Validate output folder
+function validateOutputFolder(folder) {
+    if (!folder) {
+        throw new Error('No output folder selected');
+    }
+
+    if (!(folder instanceof Folder)) {
+        throw new Error('Invalid folder selection');
+    }
+
+    // Check if folder is writable
+    try {
+        var testFile = new File(folder + '/test.tmp');
+        testFile.open('w');
+        testFile.close();
+        testFile.remove();
+    } catch (error) {
+        throw new Error('Output folder is not writable: ' + folder.fsName);
+    }
+
+    return true;
+}
+
+// Clean up temporary files
+function cleanupTempFiles(tempFiles) {
+    for (var i = 0; i < tempFiles.length; i++) {
+        try {
+            var file = tempFiles[i];
+            if (file instanceof File && file.exists) {
+                file.remove();
+            }
+        } catch (error) {
+            // Ignore cleanup errors
+        }
+    }
+}
+
+// Get default configuration values
+function getDefaultConfig() {
+    return {
+        galleryType: 'grid',
+        columns: 3,
+        gridContainerType: 'full size',
+        maxImageWidth: 800,
+        maxImageHeight: 600,
+        jpgQuality: 85,
+        includeLightbox: true,
+        responsive: true,
+        outputPath: '',
+        galleryName: 'Photo Gallery'
+    };
+}
+
+// Validate configuration object
+function validateConfig(config) {
+    if (!config) {
+        throw new Error('Configuration is required');
+    }
+
+    if (!config.outputPath || config.outputPath === '') {
+        throw new Error('Output path is required');
+    }
+
+    if (config.columns < 1 || config.columns > 12) {
+        throw new Error('Columns must be between 1 and 12');
+    }
+
+    if (config.maxImageWidth < 100 || config.maxImageWidth > 4000) {
+        throw new Error('Image width must be between 100 and 4000 pixels');
+    }
+
+    if (config.jpgQuality < 1 || config.jpgQuality > 100) {
+        throw new Error('JPG quality must be between 1 and 100');
+    }
+
+    return true;
+}
+
+// Show a simple progress indicator
+function showSimpleProgress(current, total, message) {
+    var progress = Math.round((current / total) * 100);
+    var progressText = message + ' (' + current + '/' + total + ' - ' + progress + '%)';
+
+    // In a real implementation, you'd update a progress bar here
+    // For now, just return the progress text
+    return progressText;
+}
+
+// Log debug information (useful for troubleshooting)
+function debugLog(message) {
+    // In ExtendScript, you can use $.writeln for debugging in ExtendScript Toolkit
+    if (typeof $ !== 'undefined' && $.writeln) {
+        $.writeln('[PhotoGallery] ' + message);
+    }
+}
+
+// Check if running on macOS
+function isMacOS() {
+    return $.os.indexOf('Macintosh') !== -1;
+}
+
+// Check if running on Windows
+function isWindows() {
+    return $.os.indexOf('Windows') !== -1;
+}
+
+// Get platform-specific path separator
+function getPathSeparator() {
+    return isWindows() ? '\\' : '/';
+}
+
+// Normalize file paths for cross-platform compatibility
+function normalizePath(path) {
+    return path.replace(/\\/g, '/');
+}
+
+// Escape HTML characters for safe output
+function escapeHtml(text) {
+    var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+// Simple JSON stringify function for ExtendScript compatibility
+function stringifyJSON(obj, indent) {
+    indent = indent || 0;
+    var spaces = '';
+    for (var i = 0; i < indent; i++) {
+        spaces += '    ';
+    }
+    
+    if (obj === null) {
+        return 'null';
+    }
+    
+    if (typeof obj === 'undefined') {
+        return 'undefined';
+    }
+    
+    if (typeof obj === 'string') {
+        return '"' + obj.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t') + '"';
+    }
+    
+    if (typeof obj === 'number' || typeof obj === 'boolean') {
+        return String(obj);
+    }
+    
+    if (obj instanceof Array) {
+        var items = [];
+        for (var i = 0; i < obj.length; i++) {
+            items.push(spaces + '    ' + stringifyJSON(obj[i], indent + 1));
+        }
+        if (items.length === 0) {
+            return '[]';
+        }
+        return '[\n' + items.join(',\n') + '\n' + spaces + ']';
+    }
+    
+    if (typeof obj === 'object') {
+        var items = [];
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var value = stringifyJSON(obj[key], indent + 1);
+                items.push(spaces + '    "' + key + '": ' + value);
+            }
+        }
+        if (items.length === 0) {
+            return '{}';
+        }
+        return '{\n' + items.join(',\n') + '\n' + spaces + '}';
+    }
+    
+    return 'null';
+}
+
+// Decode URL-encoded file names for display
+function decodeFileName(fileName) {
+    if (!fileName) return fileName;
+    
+    try {
+        // Replace common URL encodings with readable characters
+        var decoded = fileName;
+        decoded = decoded.replace(/%20/g, ' ');  // Space
+        decoded = decoded.replace(/%21/g, '!');  // Exclamation mark
+        decoded = decoded.replace(/%22/g, '"');  // Quote
+        decoded = decoded.replace(/%23/g, '#');  // Hash
+        decoded = decoded.replace(/%24/g, '$');  // Dollar
+        decoded = decoded.replace(/%25/g, '%');  // Percent
+        decoded = decoded.replace(/%26/g, '&');  // Ampersand
+        decoded = decoded.replace(/%27/g, "'");  // Apostrophe
+        decoded = decoded.replace(/%28/g, '(');  // Left parenthesis
+        decoded = decoded.replace(/%29/g, ')');  // Right parenthesis
+        decoded = decoded.replace(/%2A/g, '*');  // Asterisk
+        decoded = decoded.replace(/%2B/g, '+');  // Plus
+        decoded = decoded.replace(/%2C/g, ',');  // Comma
+        decoded = decoded.replace(/%2D/g, '-');  // Hyphen
+        decoded = decoded.replace(/%2E/g, '.');  // Period
+        decoded = decoded.replace(/%2F/g, '/');  // Forward slash
+        decoded = decoded.replace(/%3A/g, ':');  // Colon
+        decoded = decoded.replace(/%3B/g, ';');  // Semicolon
+        decoded = decoded.replace(/%3C/g, '<');  // Less than
+        decoded = decoded.replace(/%3D/g, '=');  // Equals
+        decoded = decoded.replace(/%3E/g, '>');  // Greater than
+        decoded = decoded.replace(/%3F/g, '?');  // Question mark
+        decoded = decoded.replace(/%40/g, '@');  // At symbol
+        decoded = decoded.replace(/%5B/g, '[');  // Left bracket
+        decoded = decoded.replace(/%5C/g, '\\'); // Backslash
+        decoded = decoded.replace(/%5D/g, ']');  // Right bracket
+        decoded = decoded.replace(/%5E/g, '^');  // Caret
+        decoded = decoded.replace(/%5F/g, '_');  // Underscore
+        decoded = decoded.replace(/%60/g, '`');  // Backtick
+        decoded = decoded.replace(/%7B/g, '{');  // Left brace
+        decoded = decoded.replace(/%7C/g, '|');  // Pipe
+        decoded = decoded.replace(/%7D/g, '}');  // Right brace
+        decoded = decoded.replace(/%7E/g, '~');  // Tilde
+        
+        return decoded;
+    } catch (error) {
+        // If decoding fails, return original name
+        return fileName;
+    }
+}
+
+// Open gallery in default browser
+function openGalleryInBrowser(outputFolder) {
+    try {
+        var indexFile = new File(outputFolder + '/index.html');
+        
+        if (!indexFile.exists) {
+            alert('Gallery file not found: ' + indexFile.fsName);
+            return false;
+        }
+
+        // Try to execute the HTML file directly (opens in default browser)
+        var success = indexFile.execute();
+        
+        if (!success) {
+            // Fallback: Try using Bridge's thumbnail reveal method if available
+            try {
+                if (typeof app !== 'undefined' && app.name === 'bridge') {
+                    // Get a thumbnail for the HTML file and try to reveal it
+                    var thumb = new Thumbnail(indexFile);
+                    if (thumb && thumb.revealInSystemBrowser) {
+                        success = thumb.revealInSystemBrowser();
+                    }
+                }
+            } catch (thumbError) {
+                // Thumbnail method failed, continue to next fallback
+                debugLog('Thumbnail reveal failed: ' + thumbError.message);
+            }
+        }
+
+        if (!success) {
+            // Final fallback: show the folder and give instructions
+            try {
+                outputFolder.execute(); // Open the folder
+                alert('Gallery generated successfully!\n\nThe gallery folder has been opened.\nDouble-click on "index.html" to view your gallery in a web browser.');
+                success = true;
+            } catch (folderError) {
+                // Last resort: just show the path
+                alert('Gallery generated successfully!\n\nPlease navigate to this folder and open index.html:\n\n' + outputFolder.fsName);
+                success = true; // Consider this successful since we provided instructions
+            }
+        }
+
+        return success;
+
+    } catch (error) {
+        alert('Error opening gallery: ' + error.message + '\n\nPlease navigate to the output folder and open index.html manually.');
+        return false;
+    }
+}
