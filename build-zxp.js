@@ -32,7 +32,7 @@ const config = {
     extensionName: 'com.adobe.bridgephotogallery',
     version: packageVersion,
     // Certificate password - can be set via environment variable for security
-    certificatePassword: process.env.ZXP_CERT_PASSWORD || 'Adobe2019'
+    certificatePassword: process.env.ZXP_CERT_PASSWORD || ''
 };
 
 // Files and directories to copy to ZXP
