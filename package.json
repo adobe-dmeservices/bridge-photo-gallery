@@ -16,7 +16,7 @@
     "photo-gallery",
     "zxp"
   ],
-  "author": "Your Name",
+  "author": "Adobe Digital Media Services",
   "license": "MIT",
   "devDependencies": {
     "fs-extra": "^11.1.1",

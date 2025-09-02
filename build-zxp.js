@@ -11,6 +11,10 @@ const fs = require('fs-extra');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Read version from package.json
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const packageVersion = packageJson.version;
+
 // Configuration
 const config = {
     projectRoot: __dirname,
@@ -19,9 +23,9 @@ const config = {
     certificatePath: path.join(__dirname, 'certificate', 'cert.p12'),
     zxpSignCmd: path.join(__dirname, 'certificate', 'ZXPSignCmd'),
     extensionName: 'com.adobe.bridgephotogallery',
-    version: '1.0.0',
+    version: packageVersion,
     // Certificate password - can be set via environment variable for security
-    certificatePassword: process.env.ZXP_CERT_PASSWORD || ''
+    certificatePassword: process.env.ZXP_CERT_PASSWORD || 'Adobe2019'
 };
 
 // Files and directories to copy to ZXP
@@ -85,6 +89,35 @@ function createZxpTempStructure() {
 }
 
 /**
+ * Update version in .mxi file
+ */
+function updateMxiVersion() {
+    console.log('🔄 Updating .mxi file version...');
+    
+    try {
+        const mxiPath = path.join(config.projectRoot, 'com.adobe.bridgePhotoGallery.mxi');
+        const tempMxiPath = path.join(config.zxpTempDir, 'com.adobe.bridgePhotoGallery.mxi');
+        
+        // Read the original .mxi file
+        let mxiContent = fs.readFileSync(mxiPath, 'utf8');
+        
+        // Replace the version attribute in the macromedia-extension element
+        mxiContent = mxiContent.replace(
+            /<macromedia-extension([^>]*)\sversion="[^"]*"/,
+            `<macromedia-extension$1 version="${config.version}"`
+        );
+        
+        // Write the updated content to the temp directory
+        fs.writeFileSync(tempMxiPath, mxiContent, 'utf8');
+        
+        console.log(`✅ Updated .mxi version to ${config.version}`);
+    } catch (error) {
+        console.error('❌ Error updating .mxi version:', error.message);
+        process.exit(1);
+    }
+}
+
+/**
  * Copy files to zxp-temp directory
  */
 function copyFiles() {
@@ -94,6 +127,12 @@ function copyFiles() {
         filesToCopy.forEach(item => {
             const sourcePath = path.join(config.projectRoot, item.source);
             const destPath = path.join(config.zxpTempDir, item.dest);
+            
+            // Skip .mxi file - we'll handle it separately with version updating
+            if (item.source === 'com.adobe.bridgePhotoGallery.mxi') {
+                console.log(`  ⏭️  Skipping ${item.source} (will be processed separately with version update)`);
+                return;
+            }
             
             if (!fs.existsSync(sourcePath)) {
                 throw new Error(`Source file/directory not found: ${sourcePath}`);
@@ -164,8 +203,8 @@ function createZxp() {
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
     const zxpFileName = isDev 
-        ? `${config.extensionName}-dev-${timestamp}.zxp`
-        : `${config.extensionName}.zxp`;
+        ? `${config.extensionName}-${config.version}-dev-${timestamp}.zxp`
+        : `${config.extensionName}-${config.version}.zxp`;
     const zxpOutputPath = path.join(config.outputDir, zxpFileName);
     
     try {
@@ -185,7 +224,7 @@ function createZxp() {
         }
         
         // Build the ZXPSignCmd command
-        const command = `"${config.zxpSignCmd}" -sign "${config.zxpTempDir}" "${zxpOutputPath}" "${config.certificatePath}" "${config.certificatePassword}"`;
+        const command = `"${config.zxpSignCmd}" -sign "${config.zxpTempDir}" "${zxpOutputPath}" "${config.certificatePath}" "${config.certificatePassword}" "-tsa" "http://timestamp.digicert.com"`;
         
         console.log('🔧 Running ZXPSignCmd...');
         console.log(`   Command: ${command}`);
@@ -247,6 +286,9 @@ function main() {
             // Step 3: Copy files
             copyFiles();
             
+            // Step 4: Update .mxi file version
+            updateMxiVersion();
+            
             console.log('✅ Files prepared in zxp-temp directory');
             console.log('💡 To create the ZXP manually, run:');
             console.log(`   "${config.zxpSignCmd}" -sign "${config.zxpTempDir}" "output.zxp" "${config.certificatePath}" "YOUR_PASSWORD"`);
@@ -268,7 +310,10 @@ function main() {
         // Step 4: Copy files
         copyFiles();
         
-        // Step 5: Create ZXP
+        // Step 5: Update .mxi file version
+        updateMxiVersion();
+        
+        // Step 6: Create ZXP
         createZxp();
         
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
