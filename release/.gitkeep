@@ -1,0 +1,2 @@
+# This file ensures the release directory is tracked by git
+# ZXP files in this directory are ignored by .gitignore

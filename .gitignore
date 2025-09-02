@@ -11,6 +11,10 @@ zxp-temp/
 *.zxp.bak
 build-temp/
 
+# Release folder - ignore ZXP files but keep folder structure
+release/*.zxp
+release/*.zip
+
 # macOS specific files
 .DS_Store
 .DS_Store?
@@ -47,10 +51,12 @@ NOTES.md
 TODO.md
 DEVLOG.md
 
-# Certificate private keys (keep build commands but not sensitive data)
+# Certificate private keys (do not keep sensitive data)
 certificate/*.p12
 certificate/*.key
 certificate/private/
+certificate/passwords.txt
+certificate/build commands.txt
 
 # Backup files
 *.bak
@@ -65,3 +71,5 @@ yarn-error.log*
 
 # Generated documentation
 docs/generated/
+# Environment files
+.env

@@ -7,7 +7,9 @@
     "build": "node build-zxp.js",
     "build:dev": "node build-zxp.js --dev",
     "clean": "node build-zxp.js --clean",
-    "prepare": "node build-zxp.js --prepare-only"
+    "prepare": "node build-zxp.js --prepare-only",
+    "generate-cert": "node generate-cert.js",
+    "generate-cert:force": "node generate-cert.js --force"
   },
   "keywords": [
     "adobe",
@@ -19,6 +21,7 @@
   "author": "Adobe Digital Media Services",
   "license": "MIT",
   "devDependencies": {
+    "dotenv": "^16.3.1",
     "fs-extra": "^11.1.1",
     "path": "^0.12.7"
   },

@@ -11,6 +11,13 @@ const fs = require('fs-extra');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Load environment variables from .env file if it exists
+try {
+    require('dotenv').config();
+} catch (error) {
+    // dotenv is optional - continue without it if not available
+}
+
 // Read version from package.json
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
 const packageVersion = packageJson.version;
@@ -19,7 +26,7 @@ const packageVersion = packageJson.version;
 const config = {
     projectRoot: __dirname,
     zxpTempDir: path.join(__dirname, 'zxp-temp'),
-    outputDir: __dirname,
+    outputDir: path.join(__dirname, 'release'),
     certificatePath: path.join(__dirname, 'certificate', 'cert.p12'),
     zxpSignCmd: path.join(__dirname, 'certificate', 'ZXPSignCmd'),
     extensionName: 'com.adobe.bridgephotogallery',
@@ -67,6 +74,20 @@ function cleanZxpTemp() {
         }
     } catch (error) {
         console.error('❌ Error cleaning zxp-temp directory:', error.message);
+        process.exit(1);
+    }
+}
+
+/**
+ * Create the release directory
+ */
+function createReleaseDirectory() {
+    console.log('📁 Creating release directory...');
+    try {
+        fs.ensureDirSync(config.outputDir);
+        console.log('✅ Release directory ready');
+    } catch (error) {
+        console.error('❌ Error creating release directory:', error.message);
         process.exit(1);
     }
 }
@@ -280,7 +301,8 @@ function main() {
             // Step 1: Clean
             cleanZxpTemp();
             
-            // Step 2: Create directory structure
+            // Step 2: Create directories
+            createReleaseDirectory();
             createZxpTempStructure();
             
             // Step 3: Copy files
@@ -304,7 +326,8 @@ function main() {
         // Step 2: Validate required files
         validateRequiredFiles();
         
-        // Step 3: Create directory structure
+        // Step 3: Create directories
+        createReleaseDirectory();
         createZxpTempStructure();
         
         // Step 4: Copy files
