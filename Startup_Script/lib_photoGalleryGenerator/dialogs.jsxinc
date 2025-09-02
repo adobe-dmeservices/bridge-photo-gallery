@@ -1,74 +1,373 @@
 /**
  * Photo Gallery Generator - Dialog Components
  * ScriptUI dialog components for the Bridge photo gallery generator
+ * Generates using https://scriptui.joonas.me/
  */
 
 // Show the main gallery configuration dialog
 function showGalleryConfigDialog() {
     var config = getDefaultConfig();
 
-    var dialog = new Window('dialog', 'Photo Gallery Generator - Settings');
-    dialog.alignChildren = ['fill', 'top'];
-    dialog.preferredSize = [400, 350];
+    /*
+    Code for Import https://scriptui.joonas.me — (Triple click to select): 
+    {"activeId":42,"items":{"item-0":{"id":0,"type":"Dialog","parentId":false,"style":{"enabled":true,"varName":null,"windowType":"Dialog","creationProps":{"su1PanelCoordinates":false,"maximizeButton":false,"minimizeButton":false,"independent":false,"closeButton":false,"borderless":false,"resizeable":false},"text":"Photo Gallery Generator - Settings","preferredSize":[0,0],"margins":16,"orientation":"column","spacing":10,"alignChildren":["left","top"]}},"item-1":{"id":1,"type":"StaticText","parentId":3,"style":{"enabled":true,"varName":"nameInputLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Gallery Name:","justify":"right","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-2":{"id":2,"type":"EditText","parentId":3,"style":{"enabled":true,"varName":"nameInput","creationProps":{"noecho":false,"readonly":false,"multiline":false,"scrollable":false,"borderless":false,"enterKeySignalsOnChange":false},"softWrap":false,"text":"Photo Gallery","justify":"left","preferredSize":[200,0],"alignment":null,"helpTip":"Enter a name for your gallery"}},"item-3":{"id":3,"type":"Group","parentId":0,"style":{"enabled":true,"varName":"nameGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":"left"}},"item-4":{"id":4,"type":"Group","parentId":0,"style":{"enabled":true,"varName":"typeGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":null}},"item-5":{"id":5,"type":"StaticText","parentId":11,"style":{"enabled":true,"varName":"typeDropdownLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Gallery layout:","justify":"left","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-7":{"id":7,"type":"DropDownList","parentId":11,"style":{"enabled":true,"varName":"typeDropdown","text":"DropDownList","listItems":"Grid,Masonry,Carousel","preferredSize":[100,0],"alignment":null,"selection":0,"helpTip":"Choose whether to display as a grid, a masonry wall, or a carousel"}},"item-8":{"id":8,"type":"StaticText","parentId":10,"style":{"enabled":true,"varName":"containerDropdownLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Grid container:","justify":"left","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-9":{"id":9,"type":"DropDownList","parentId":10,"style":{"enabled":true,"varName":"containerDropdown","text":"DropDownList","listItems":"Full Size, Square","preferredSize":[100,0],"alignment":null,"selection":1,"helpTip":"Do you want square or proportional containers for the grid?"}},"item-10":{"id":10,"type":"Group","parentId":15,"style":{"enabled":true,"varName":"containerGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":null}},"item-11":{"id":11,"type":"Group","parentId":4,"style":{"enabled":true,"varName":"galleryLayoutGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":null}},"item-12":{"id":12,"type":"Panel","parentId":0,"style":{"enabled":true,"varName":"titleGroup","creationProps":{"borderStyle":"etched","su1PanelCoordinates":false},"text":"Caption Text Options","preferredSize":[0,0],"margins":10,"orientation":"column","spacing":10,"alignChildren":["left","top"],"alignment":null}},"item-13":{"id":13,"type":"StaticText","parentId":12,"style":{"enabled":true,"varName":"titleDropdownLabel","creationProps":{},"softWrap":true,"text":"You can choose whether to display image Title, Description, or File name in the captions below each image. The Title and Description are taken from the metadata of each image file (if available). The precedence order determines which text is displayed if multiple metadata properties are available. If none are available, the file name will be used as a fallback.","justify":"left","preferredSize":[0,0],"alignment":null,"helpTip":null}},"item-14":{"id":14,"type":"DropDownList","parentId":12,"style":{"enabled":true,"varName":"titleDropdown","text":"DropDownList","listItems":"Title->Description->File name,Description->Title->File name,File name Only'","preferredSize":[250,0],"alignment":null,"selection":0,"helpTip":"Choose how to display asset metadata in the gallery"}},"item-15":{"id":15,"type":"Panel","parentId":0,"style":{"enabled":true,"varName":"gridOptions","creationProps":{"borderStyle":"etched","su1PanelCoordinates":false},"text":"Gallery layout options","preferredSize":[0,0],"margins":10,"orientation":"row","spacing":10,"alignChildren":["left","top"],"alignment":null}},"item-16":{"id":16,"type":"Group","parentId":15,"style":{"enabled":true,"varName":"gridGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":null}},"item-17":{"id":17,"type":"StaticText","parentId":16,"style":{"enabled":true,"varName":"columnsDropdownLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Columns:","justify":"left","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-18":{"id":18,"type":"DropDownList","parentId":16,"style":{"enabled":true,"varName":"columnsDropdown","text":"DropDownList","listItems":"1,2,3,4,5,6","preferredSize":[50,0],"alignment":null,"selection":2,"helpTip":"How many columns should your gallery have?"}},"item-19":{"id":19,"type":"Group","parentId":15,"style":{"enabled":true,"varName":"carouselGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":null}},"item-20":{"id":20,"type":"StaticText","parentId":19,"style":{"enabled":true,"varName":"carouselSpeedDropdownLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Carousel speed:","justify":"left","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-21":{"id":21,"type":"DropDownList","parentId":19,"style":{"enabled":true,"varName":"carouselSpeedDropdown","text":"DropDownList","listItems":"2 seconds,3 seconds,4 seconds,5 seconds,6 seconds,8 seconds,10 seconds,12 seconds","preferredSize":[110,0],"alignment":null,"selection":3,"helpTip":"How many seconds until the carousel advances to the next slide?"}},"item-22":{"id":22,"type":"Panel","parentId":0,"style":{"enabled":true,"varName":"imageGroup","creationProps":{"borderStyle":"etched","su1PanelCoordinates":false},"text":"Image settings","preferredSize":[0,0],"margins":10,"orientation":"row","spacing":10,"alignChildren":["left","top"],"alignment":null}},"item-23":{"id":23,"type":"Group","parentId":22,"style":{"enabled":true,"varName":"widthGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":"left"}},"item-24":{"id":24,"type":"StaticText","parentId":23,"style":{"enabled":true,"varName":"widthInputLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Max width (px):","justify":"right","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-25":{"id":25,"type":"EditText","parentId":23,"style":{"enabled":true,"varName":"widthInput","creationProps":{"noecho":false,"readonly":false,"multiline":false,"scrollable":false,"borderless":false,"enterKeySignalsOnChange":false},"softWrap":false,"text":"800","justify":"left","preferredSize":[40,0],"alignment":null,"helpTip":"Maximum width (in pixels) for your gallery images"}},"item-26":{"id":26,"type":"Group","parentId":22,"style":{"enabled":true,"varName":"heightGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":"left"}},"item-27":{"id":27,"type":"StaticText","parentId":26,"style":{"enabled":true,"varName":"heightInputLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Max height (px):","justify":"right","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-28":{"id":28,"type":"EditText","parentId":26,"style":{"enabled":true,"varName":"heightInput","creationProps":{"noecho":false,"readonly":false,"multiline":false,"scrollable":false,"borderless":false,"enterKeySignalsOnChange":false},"softWrap":false,"text":"600","justify":"left","preferredSize":[40,0],"alignment":null,"helpTip":"Maximum height (in pixels) for your gallery images"}},"item-29":{"id":29,"type":"Group","parentId":22,"style":{"enabled":true,"varName":"qualityGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":"left"}},"item-30":{"id":30,"type":"StaticText","parentId":29,"style":{"enabled":true,"varName":"qualityInputLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"JPEG quality (1-100)","justify":"right","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-31":{"id":31,"type":"EditText","parentId":29,"style":{"enabled":true,"varName":"qualityInput","creationProps":{"noecho":false,"readonly":false,"multiline":false,"scrollable":false,"borderless":false,"enterKeySignalsOnChange":false},"softWrap":false,"text":"85","justify":"left","preferredSize":[40,0],"alignment":null,"helpTip":"JPEG quality (1-100)"}},"item-32":{"id":32,"type":"Panel","parentId":0,"style":{"enabled":true,"varName":"outputGroup","creationProps":{"borderStyle":"etched","su1PanelCoordinates":false},"text":"Output folder","preferredSize":[0,0],"margins":10,"orientation":"column","spacing":10,"alignChildren":["left","top"],"alignment":null}},"item-33":{"id":33,"type":"Group","parentId":32,"style":{"enabled":true,"varName":"pathGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":"left"}},"item-34":{"id":34,"type":"StaticText","parentId":32,"style":{"enabled":true,"varName":"folderLabel","creationProps":{"truncate":"none","multiline":false,"scrolling":false},"softWrap":false,"text":"Select output folder...","justify":"right","preferredSize":[0,0],"alignment":null,"helpTip":""}},"item-35":{"id":35,"type":"EditText","parentId":33,"style":{"enabled":true,"varName":"pathInput","creationProps":{"noecho":false,"readonly":false,"multiline":false,"scrollable":false,"borderless":false,"enterKeySignalsOnChange":false},"softWrap":false,"text":"","justify":"left","preferredSize":[350,0],"alignment":null,"helpTip":"JPEG quality (1-100)"}},"item-36":{"id":36,"type":"Button","parentId":33,"style":{"enabled":true,"varName":"browseBtn","text":"Browse...","justify":"center","preferredSize":[0,0],"alignment":null,"helpTip":null}},"item-37":{"id":37,"type":"Panel","parentId":0,"style":{"enabled":true,"varName":"optionsGroup","creationProps":{"borderStyle":"etched","su1PanelCoordinates":false},"text":"Additional options","preferredSize":[0,0],"margins":10,"orientation":"column","spacing":10,"alignChildren":["left","top"],"alignment":null}},"item-38":{"id":38,"type":"Checkbox","parentId":37,"style":{"enabled":true,"varName":"lightboxCheckbox","text":"Include lightbox viewer","preferredSize":[0,0],"alignment":null,"helpTip":null,"checked":true}},"item-39":{"id":39,"type":"Checkbox","parentId":37,"style":{"enabled":true,"varName":"responsiveCheckbox","text":"Responsive design","preferredSize":[0,0],"alignment":null,"helpTip":null,"checked":true}},"item-40":{"id":40,"type":"Checkbox","parentId":37,"style":{"enabled":true,"varName":"embedCheckbox","text":"Generate single file HTML (no CSS, JS)","preferredSize":[0,0],"alignment":null,"helpTip":" ","checked":false}},"item-41":{"id":41,"type":"Group","parentId":0,"style":{"enabled":true,"varName":"letsDoItGroup","preferredSize":[0,0],"margins":0,"orientation":"row","spacing":10,"alignChildren":["left","center"],"alignment":null}},"item-42":{"id":42,"type":"Button","parentId":41,"style":{"enabled":false,"varName":"mainGenerateBtn","text":"Generate gallery","justify":"center","preferredSize":[0,0],"alignment":null,"helpTip":null}},"item-43":{"id":43,"type":"Button","parentId":41,"style":{"enabled":true,"varName":"mainCancelBtn","text":"Cancel","justify":"center","preferredSize":[0,0],"alignment":null,"helpTip":null}}},"order":[0,3,1,2,4,11,5,7,15,10,8,9,16,17,18,19,20,21,12,13,14,22,23,24,25,26,27,28,29,30,31,32,34,33,35,36,37,38,39,40,41,43,42],"settings":{"importJSON":true,"indentSize":false,"cepExport":false,"includeCSSJS":true,"showDialog":true,"functionWrapper":false,"afterEffectsDockable":false,"itemReferenceList":"None"}}
+    */
 
-    // Gallery Name Section
-    var nameGroup = dialog.add('group');
-    nameGroup.add('statictext', undefined, 'Gallery Name:');
-    var nameInput = nameGroup.add('edittext', undefined, 'Photo Gallery');
-    nameInput.preferredSize = [200, 25];
-
-    // Gallery Type Section
-    var typeGroup = dialog.add('group');
-    typeGroup.add('statictext', undefined, 'Gallery Layout:');
-
-    var typeDropdown = typeGroup.add('dropdownlist', undefined,
-        ['Grid', 'Masonry', 'Carousel']);
-    typeDropdown.selection = 0;
-    typeDropdown.preferredSize = [150, 25];
-
-    // Grid Container Type
-    var containerGroup = dialog.add('group');
-    containerGroup.add('statictext', undefined, 'Grid Container:');
-
-    var containerDropdown = containerGroup.add('dropdownlist', undefined,
-        ['Full Size', 'Square']);
-    containerDropdown.selection = 0; // Default to Full Size
-    containerDropdown.preferredSize = [100, 25];
-
-
-    // Option for whether to use Title/Description
-    // Gallery Type Section
-    var titleGroup = dialog.add('panel', undefined, 'Caption Text Options');
-    titleGroup.alignChildren = ['left', 'top'];
-    titleGroup.margins = 10;
-    var titleInstructions = titleGroup.add('statictext', undefined, 'You can choose whether to display image Title, Description, or File name in the captions below each image. The Title and Description are taken from the metadata of each image file (if available). The precedence order determines which text is displayed if multiple metadata properties are available. If none are available, the file name will be used as a fallback.', {
-        multiline: true
+    // DIALOG
+    // ======
+    var dialog = new Window("dialog", undefined, undefined, {
+        closeButton: false
     });
-    titleInstructions.preferredSize = [360, 90];
+    dialog.text = "Photo Gallery Generator - Settings";
+    dialog.orientation = "column";
+    dialog.alignChildren = ["left", "top"];
+    dialog.spacing = 10;
+    dialog.margins = 16;
 
+    // NAMEGROUP
+    // =========
+    var nameGroup = dialog.add("group", undefined, {
+        name: "nameGroup"
+    });
+    nameGroup.orientation = "row";
+    nameGroup.alignChildren = ["left", "center"];
+    nameGroup.spacing = 10;
+    nameGroup.margins = 0;
+    nameGroup.alignment = ["left", "top"];
 
-    var titleDropdown = titleGroup.add('dropdownlist', undefined,
-        ['Title->Description->File name', 'Description->Title->File name', 'File name Only']);
+    var nameInputLabel = nameGroup.add("statictext", undefined, undefined, {
+        name: "nameInputLabel"
+    });
+    nameInputLabel.text = "Gallery Name:";
+    nameInputLabel.justify = "right";
+
+    var nameInput = nameGroup.add('edittext {properties: {name: "nameInput"}}');
+    nameInput.helpTip = "Enter a name for your gallery";
+    nameInput.text = "Photo Gallery";
+    nameInput.preferredSize.width = 200;
+
+    // TYPEGROUP
+    // =========
+    var typeGroup = dialog.add("group", undefined, {
+        name: "typeGroup"
+    });
+    typeGroup.orientation = "row";
+    typeGroup.alignChildren = ["left", "center"];
+    typeGroup.spacing = 10;
+    typeGroup.margins = 0;
+
+    // GALLERYLAYOUTGROUP
+    // ==================
+    var galleryLayoutGroup = typeGroup.add("group", undefined, {
+        name: "galleryLayoutGroup"
+    });
+    galleryLayoutGroup.orientation = "row";
+    galleryLayoutGroup.alignChildren = ["left", "center"];
+    galleryLayoutGroup.spacing = 10;
+    galleryLayoutGroup.margins = 0;
+
+    var typeDropdownLabel = galleryLayoutGroup.add("statictext", undefined, undefined, {
+        name: "typeDropdownLabel"
+    });
+    typeDropdownLabel.text = "Gallery layout:";
+
+    var typeDropdown_array = ["Grid", "Masonry", "Carousel"];
+    var typeDropdown = galleryLayoutGroup.add("dropdownlist", undefined, undefined, {
+        name: "typeDropdown",
+        items: typeDropdown_array
+    });
+    typeDropdown.helpTip = "Choose whether to display as a grid, a masonry wall, or a carousel";
+    typeDropdown.selection = 0;
+    typeDropdown.preferredSize.width = 100;
+
+    // GRIDOPTIONS
+    // ===========
+    var gridOptions = dialog.add("panel", undefined, undefined, {
+        name: "gridOptions"
+    });
+    gridOptions.text = "Gallery layout options";
+    gridOptions.orientation = "row";
+    gridOptions.alignChildren = ["left", "top"];
+    gridOptions.spacing = 10;
+    gridOptions.margins = 10;
+
+    // CONTAINERGROUP
+    // ==============
+    var containerGroup = gridOptions.add("group", undefined, {
+        name: "containerGroup"
+    });
+    containerGroup.orientation = "row";
+    containerGroup.alignChildren = ["left", "center"];
+    containerGroup.spacing = 10;
+    containerGroup.margins = 0;
+
+    var containerDropdownLabel = containerGroup.add("statictext", undefined, undefined, {
+        name: "containerDropdownLabel"
+    });
+    containerDropdownLabel.text = "Grid container:";
+
+    var containerDropdown_array = ["Full Size", "Square"];
+    var containerDropdown = containerGroup.add("dropdownlist", undefined, undefined, {
+        name: "containerDropdown",
+        items: containerDropdown_array
+    });
+    containerDropdown.helpTip = "Do you want square or proportional containers for the grid?";
+    containerDropdown.selection = 1;
+    containerDropdown.preferredSize.width = 100;
+
+    // GRIDGROUP
+    // =========
+    var gridGroup = gridOptions.add("group", undefined, {
+        name: "gridGroup"
+    });
+    gridGroup.orientation = "row";
+    gridGroup.alignChildren = ["left", "center"];
+    gridGroup.spacing = 10;
+    gridGroup.margins = 0;
+
+    var columnsDropdownLabel = gridGroup.add("statictext", undefined, undefined, {
+        name: "columnsDropdownLabel"
+    });
+    columnsDropdownLabel.text = "Columns:";
+
+    var columnsDropdown_array = ["1", "2", "3", "4", "5", "6"];
+    var columnsDropdown = gridGroup.add("dropdownlist", undefined, undefined, {
+        name: "columnsDropdown",
+        items: columnsDropdown_array
+    });
+    columnsDropdown.helpTip = "How many columns should your gallery have?";
+    columnsDropdown.selection = 2;
+    columnsDropdown.preferredSize.width = 50;
+
+    // CAROUSELGROUP
+    // =============
+    var carouselGroup = gridOptions.add("group", undefined, {
+        name: "carouselGroup"
+    });
+    carouselGroup.orientation = "row";
+    carouselGroup.alignChildren = ["left", "center"];
+    carouselGroup.spacing = 10;
+    carouselGroup.margins = 0;
+
+    var carouselSpeedDropdownLabel = carouselGroup.add("statictext", undefined, undefined, {
+        name: "carouselSpeedDropdownLabel"
+    });
+    carouselSpeedDropdownLabel.text = "Carousel speed:";
+
+    var carouselSpeedDropdown_array = ["2 seconds", "3 seconds", "4 seconds", "5 seconds", "6 seconds", "8 seconds", "10 seconds", "12 seconds"];
+    var carouselSpeedDropdown = carouselGroup.add("dropdownlist", undefined, undefined, {
+        name: "carouselSpeedDropdown",
+        items: carouselSpeedDropdown_array
+    });
+    carouselSpeedDropdown.helpTip = "How many seconds until the carousel advances to the next slide?";
+    carouselSpeedDropdown.selection = 3;
+    carouselSpeedDropdown.preferredSize.width = 110;
+
+    // TITLEGROUP
+    // ==========
+    var titleGroup = dialog.add("panel", undefined, undefined, {
+        name: "titleGroup"
+    });
+    titleGroup.text = "Caption Text Options";
+    titleGroup.orientation = "column";
+    titleGroup.alignChildren = ["left", "top"];
+    titleGroup.spacing = 10;
+    titleGroup.margins = 10;
+
+    var titleDropdownLabel = titleGroup.add("group", undefined, {
+        name: "titleDropdownLabel"
+    });
+    titleDropdownLabel.getText = function() {
+        var t = [];
+        for (var n = 0; n < titleDropdownLabel.children.length; n++) {
+            var text = titleDropdownLabel.children[n].text || '';
+            if (text === '') text = ' ';
+            t.push(text);
+        }
+        return t.join('\n');
+    };
+    titleDropdownLabel.orientation = "column";
+    titleDropdownLabel.alignChildren = ["left", "center"];
+    titleDropdownLabel.spacing = 0;
+
+    titleDropdownLabel.add("statictext", undefined, "You can choose whether to display image Title, Description, or File name in the captions");
+    titleDropdownLabel.add("statictext", undefined, "below each image. The Title and Description are taken from the metadata of each image");
+    titleDropdownLabel.add("statictext", undefined, "file (if available). The precedence order determines which text is displayed if multiple");
+    titleDropdownLabel.add("statictext", undefined, "metadata properties are available. If none are available, the file name will be used as a");
+    titleDropdownLabel.add("statictext", undefined, "fallback.");
+
+    var titleDropdown_array = ["Title->Description->File name", "Description->Title->File name", "File name Only'"];
+    var titleDropdown = titleGroup.add("dropdownlist", undefined, undefined, {
+        name: "titleDropdown",
+        items: titleDropdown_array
+    });
+    titleDropdown.helpTip = "Choose how to display asset metadata in the gallery";
     titleDropdown.selection = 0;
-    titleDropdown.preferredSize = [300, 25];
+    titleDropdown.preferredSize.width = 250;
 
-    // Grid Settings
-    var gridGroup = dialog.add('group');
-    gridGroup.add('statictext', undefined, 'Columns:');
+    // IMAGEGROUP
+    // ==========
+    var imageGroup = dialog.add("panel", undefined, undefined, {
+        name: "imageGroup"
+    });
+    imageGroup.text = "Image settings";
+    imageGroup.orientation = "row";
+    imageGroup.alignChildren = ["left", "top"];
+    imageGroup.spacing = 10;
+    imageGroup.margins = 10;
 
-    var columnsDropdown = gridGroup.add('dropdownlist', undefined,
-        ['1', '2', '3', '4', '5', '6']);
-    columnsDropdown.selection = 2; // Default to 3 columns
-    columnsDropdown.preferredSize = [60, 25];
+    // WIDTHGROUP
+    // ==========
+    var widthGroup = imageGroup.add("group", undefined, {
+        name: "widthGroup"
+    });
+    widthGroup.orientation = "row";
+    widthGroup.alignChildren = ["left", "center"];
+    widthGroup.spacing = 10;
+    widthGroup.margins = 0;
+    widthGroup.alignment = ["left", "top"];
 
-    // Carousel Settings
-    var carouselGroup = dialog.add('group');
-    carouselGroup.add('statictext', undefined, 'Carousel Speed:');
+    var widthInputLabel = widthGroup.add("statictext", undefined, undefined, {
+        name: "widthInputLabel"
+    });
+    widthInputLabel.text = "Max width (px):";
+    widthInputLabel.justify = "right";
 
-    var carouselSpeedDropdown = carouselGroup.add('dropdownlist', undefined,
-        ['2 seconds', '3 seconds', '4 seconds', '5 seconds', '6 seconds', '8 seconds', '10 seconds', '12 seconds']);
-    carouselSpeedDropdown.selection = 3; // Default to 4 seconds
-    carouselSpeedDropdown.preferredSize = [100, 25];
+    var widthInput = widthGroup.add('edittext {properties: {name: "widthInput"}}');
+    widthInput.helpTip = "Maximum width (in pixels) for your gallery images";
+    widthInput.text = "800";
+    widthInput.preferredSize.width = 40;
+
+    // HEIGHTGROUP
+    // ===========
+    var heightGroup = imageGroup.add("group", undefined, {
+        name: "heightGroup"
+    });
+    heightGroup.orientation = "row";
+    heightGroup.alignChildren = ["left", "center"];
+    heightGroup.spacing = 10;
+    heightGroup.margins = 0;
+    heightGroup.alignment = ["left", "top"];
+
+    var heightInputLabel = heightGroup.add("statictext", undefined, undefined, {
+        name: "heightInputLabel"
+    });
+    heightInputLabel.text = "Max height (px):";
+    heightInputLabel.justify = "right";
+
+    var heightInput = heightGroup.add('edittext {properties: {name: "heightInput"}}');
+    heightInput.helpTip = "Maximum height (in pixels) for your gallery images";
+    heightInput.text = "600";
+    heightInput.preferredSize.width = 40;
+
+    // QUALITYGROUP
+    // ============
+    var qualityGroup = imageGroup.add("group", undefined, {
+        name: "qualityGroup"
+    });
+    qualityGroup.orientation = "row";
+    qualityGroup.alignChildren = ["left", "center"];
+    qualityGroup.spacing = 10;
+    qualityGroup.margins = 0;
+    qualityGroup.alignment = ["left", "top"];
+
+    var qualityInputLabel = qualityGroup.add("statictext", undefined, undefined, {
+        name: "qualityInputLabel"
+    });
+    qualityInputLabel.text = "JPEG quality (1-100)";
+    qualityInputLabel.justify = "right";
+
+    var qualityInput = qualityGroup.add('edittext {properties: {name: "qualityInput"}}');
+    qualityInput.helpTip = "JPEG quality (1-100)";
+    qualityInput.text = "85";
+    qualityInput.preferredSize.width = 40;
+
+    // OUTPUTGROUP
+    // ===========
+    var outputGroup = dialog.add("panel", undefined, undefined, {
+        name: "outputGroup"
+    });
+    outputGroup.text = "Output folder";
+    outputGroup.orientation = "column";
+    outputGroup.alignChildren = ["left", "top"];
+    outputGroup.spacing = 10;
+    outputGroup.margins = 10;
+
+    var folderLabel = outputGroup.add("statictext", undefined, undefined, {
+        name: "folderLabel"
+    });
+    folderLabel.text = "Select output folder...";
+    folderLabel.justify = "right";
+
+    // PATHGROUP
+    // =========
+    var pathGroup = outputGroup.add("group", undefined, {
+        name: "pathGroup"
+    });
+    pathGroup.orientation = "row";
+    pathGroup.alignChildren = ["left", "center"];
+    pathGroup.spacing = 10;
+    pathGroup.margins = 0;
+    pathGroup.alignment = ["left", "top"];
+
+    var pathInput = pathGroup.add('edittext {properties: {name: "pathInput"}}');
+    pathInput.helpTip = "JPEG quality (1-100)";
+    pathInput.preferredSize.width = 350;
+
+    var browseBtn = pathGroup.add("button", undefined, undefined, {
+        name: "browseBtn"
+    });
+    browseBtn.text = "Browse...";
+
+    // OPTIONSGROUP
+    // ============
+    var optionsGroup = dialog.add("panel", undefined, undefined, {
+        name: "optionsGroup"
+    });
+    optionsGroup.text = "Additional options";
+    optionsGroup.orientation = "column";
+    optionsGroup.alignChildren = ["left", "top"];
+    optionsGroup.spacing = 10;
+    optionsGroup.margins = 10;
+
+    var lightboxCheckbox = optionsGroup.add("checkbox", undefined, undefined, {
+        name: "lightboxCheckbox"
+    });
+    lightboxCheckbox.text = "Include lightbox viewer";
+    lightboxCheckbox.value = true;
+
+    var responsiveCheckbox = optionsGroup.add("checkbox", undefined, undefined, {
+        name: "responsiveCheckbox"
+    });
+    responsiveCheckbox.text = "Responsive design";
+    responsiveCheckbox.value = true;
+
+    var embedCheckbox = optionsGroup.add("checkbox", undefined, undefined, {
+        name: "embedCheckbox"
+    });
+    embedCheckbox.helpTip = " ";
+    embedCheckbox.text = "Generate single file HTML (no CSS, JS)";
+
+    // LETSDOITGROUP
+    // =============
+    var letsDoItGroup = dialog.add("group", undefined, {
+        name: "letsDoItGroup"
+    });
+    letsDoItGroup.orientation = "row";
+    letsDoItGroup.alignChildren = ["left", "center"];
+    letsDoItGroup.spacing = 10;
+    letsDoItGroup.margins = 0;
+
+    var mainCancelBtn = letsDoItGroup.add("button", undefined, undefined, {
+        name: "mainCancelBtn"
+    });
+    mainCancelBtn.text = "Cancel";
+
+    var mainGenerateBtn = letsDoItGroup.add("button", undefined, undefined, {
+        name: "mainGenerateBtn"
+    });
+    mainGenerateBtn.enabled = false;
+    mainGenerateBtn.text = "Generate gallery";
 
     // Function to show/hide layout-specific controls
     function updateLayoutControlsVisibility() {
@@ -76,11 +375,11 @@ function showGalleryConfigDialog() {
         var isGridLayout = selectedLayout === 'Grid';
         var isMasonryLayout = selectedLayout === 'Masonry';
         var isCarouselLayout = selectedLayout === 'Carousel';
-        
+
         // Show/hide grid-specific controls
         gridGroup.enabled = isGridLayout || isMasonryLayout;
         containerGroup.enabled = isGridLayout;
-        
+
         // Show/hide carousel-specific controls
         carouselGroup.enabled = isCarouselLayout;
     }
@@ -88,79 +387,62 @@ function showGalleryConfigDialog() {
     // Set initial visibility
     updateLayoutControlsVisibility();
 
-    // Image Settings
-    var imageGroup = dialog.add('panel', undefined, 'Image Settings');
-    imageGroup.alignChildren = ['left', 'top'];
-    imageGroup.margins = 10;
-
-    var widthGroup = imageGroup.add('group');
-    widthGroup.add('statictext', undefined, 'Max Width (px):');
-    var widthInput = widthGroup.add('edittext', undefined, '800');
-    widthInput.preferredSize = [80, 25];
-
-    var heightGroup = imageGroup.add('group');
-    heightGroup.add('statictext', undefined, 'Max Height (px):');
-    var heightInput = heightGroup.add('edittext', undefined, '600');
-    heightInput.preferredSize = [80, 25];
-
-    var qualityGroup = imageGroup.add('group');
-    qualityGroup.add('statictext', undefined, 'JPG Quality (1-100):');
-    var qualityInput = qualityGroup.add('edittext', undefined, '85');
-    qualityInput.preferredSize = [80, 25];
-
-    // Output Settings
-    var outputGroup = dialog.add('panel', undefined, 'Output Folder');
-    outputGroup.alignChildren = ['fill', 'top'];
-    outputGroup.margins = 10;
-
-    var folderLabel = outputGroup.add('statictext', undefined, 'Select Output Folder:');
-    folderLabel.alignment = 'left';
-
-    var pathGroup = outputGroup.add('group');
-    var pathInput = pathGroup.add('edittext', undefined, '');
-    pathInput.preferredSize = [250, 25];
-
-    var browseBtn = pathGroup.add('button', undefined, 'Browse...');
-    browseBtn.preferredSize = [80, 25];
-
-    // Options
-    var optionsGroup = dialog.add('panel', undefined, 'Options');
-    optionsGroup.alignChildren = ['left', 'top'];
-    optionsGroup.margins = 10;
-
-    var lightboxCheckbox = optionsGroup.add('checkbox', undefined, 'Include lightbox viewer');
-    lightboxCheckbox.value = true;
-
-    var responsiveCheckbox = optionsGroup.add('checkbox', undefined, 'Responsive design');
-    responsiveCheckbox.value = true;
-
-    var embedCheckbox = optionsGroup.add('checkbox', undefined, 'Embed CSS/JS in HTML (single file)');
-    embedCheckbox.value = false;
-
-    // Buttons (using standard dialog button system)
-    dialog.cancelBtn = dialog.add('button', undefined, 'Cancel', {
-        name: 'cancel'
-    });
-    dialog.generateBtn = dialog.add('button', undefined, 'Generate Gallery', {
-        name: 'ok'
-    });
-    dialog.generateBtn.enabled = false; // Initially disabled until path is selected
-
     // Event handlers - merged with layout visibility update
     typeDropdown.onChange = function() {
         updateLayoutControlsVisibility();
+    };
+
+    mainGenerateBtn.onClick = function() {
+        dialog.close(1); // Close dialog and indicate OK
+    };
+
+    mainCancelBtn.onClick = function() {
+        dialog.close(0); // Close dialog and indicate Cancel
     };
 
     browseBtn.onClick = function() {
         var folder = selectOutputFolder();
         if (folder) {
             pathInput.text = folder.fsName;
-            dialog.generateBtn.enabled = true;
+            mainGenerateBtn.enabled = true;
         }
     };
 
     pathInput.onChange = function() {
-        dialog.generateBtn.enabled = pathInput.text.length > 0;
+        mainGenerateBtn.enabled = pathInput.text.length > 0;
+    };
+
+    widthInput.onChange = function() {
+        var val = parseInt(widthInput.text);
+        if (isNaN(val) || val < 100) {
+            widthInput.text = "100";
+        } else if (val > 4000) {
+            widthInput.text = "4000";
+        } else {
+            widthInput.text = val.toString();
+        }
+    };
+
+    heightInput.onChange = function() {
+        var val = parseInt(heightInput.text);
+        if (isNaN(val) || val < 100) {
+            heightInput.text = "100";
+        } else if (val > 4000) {
+            heightInput.text = "4000";
+        } else {
+            heightInput.text = val.toString();
+        }
+    };
+
+    qualityInput.onChange = function() {
+        var val = parseInt(qualityInput.text);
+        if (isNaN(val) || val < 1) {
+            qualityInput.text = "1";
+        } else if (val > 100) {
+            qualityInput.text = "100";
+        } else {
+            qualityInput.text = val.toString();
+        }
     };
 
     // Event handlers (removed onclick handlers - let ScriptUI handle button clicks)
@@ -176,27 +458,27 @@ function showGalleryConfigDialog() {
 
             if (isNaN(width) || width < 100 || width > 4000) {
                 alert('Please enter a valid width between 100 and 4000 pixels.');
-                return null;
+                dialog.show();
             }
 
             if (isNaN(height) || height < 100 || height > 4000) {
                 alert('Please enter a valid height between 100 and 4000 pixels.');
-                return null;
+                dialog.show();
             }
 
             if (isNaN(quality) || quality < 1 || quality > 100) {
                 alert('Please enter a valid JPG quality between 1 and 100.');
-                return null;
+                dialog.show();
             }
 
             // Validate output path
             var outputFolder = new Folder(pathInput.text);
             validateOutputFolder(outputFolder);
-            
+
             // Check for existing files and show confirmation if needed
             if (checkForExistingGalleryFiles(outputFolder)) {
                 var overwriteChoice = showFolderOverwriteDialog(outputFolder.fsName);
-                
+
                 if (overwriteChoice === 1) {
                     // User chose "Choose Different Folder" - reopen folder dialog
                     var newFolder = selectOutputFolder();
@@ -204,7 +486,7 @@ function showGalleryConfigDialog() {
                         pathInput.text = newFolder.fsName;
                         outputFolder = newFolder;
                         validateOutputFolder(outputFolder);
-                        
+
                         // Check again for the new folder
                         if (checkForExistingGalleryFiles(outputFolder)) {
                             var secondChoice = showFolderOverwriteDialog(outputFolder.fsName);
@@ -231,7 +513,7 @@ function showGalleryConfigDialog() {
             var isCarouselLayout = typeDropdown.selection.text === 'Carousel';
             config.columns = isGridLayout ? parseInt(columnsDropdown.selection.text) : 3;
             config.gridContainerType = isGridLayout ? containerDropdown.selection.text.toLowerCase() : 'full size';
-            
+
             // Set carousel speed (convert text to milliseconds)
             if (isCarouselLayout) {
                 var speedText = carouselSpeedDropdown.selection.text;

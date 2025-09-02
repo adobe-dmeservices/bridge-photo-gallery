@@ -112,7 +112,7 @@ function createGalleryDialog() {
 ```javascript
 // Proper event handling for ScriptUI
 function setupDialogEvents(dialog) {
-    var generateBtn = dialog.findElement('button', 'Generate Gallery');
+    var generateBtn = dialog.findElement('button', 'Generate gallery');
     var cancelBtn = dialog.findElement('button', 'Cancel');
 
     generateBtn.onClick = function() {
