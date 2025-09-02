@@ -1,30 +1,66 @@
 # Bridge Photo Gallery Generator
 
-A powerful Adobe ExtendScript that generates standalone HTML photo galleries directly from Adobe Bridge. This script allows users to select images from Bridge, configure layout options, and generate a complete web gallery with HTML, CSS, JavaScript, and optimized images.
+A professional Adobe Bridge extension that generates responsive HTML photo galleries directly from your Bridge workspace. This ZXP extension allows users to select images from Bridge, configure advanced layout options, and generate complete web galleries with HTML, CSS, JavaScript, and optimized images with intelligent metadata extraction.
 
 ## Features
 
-- **Bridge Integration**: Seamlessly works with Adobe Bridge file selection
-- **Customizable Layout**: Choose from Grid, Masonry, or Carousel layouts
-- **Responsive Design**: Mobile-friendly gallery that works on all devices
-- **Interactive Elements**: Lightbox image viewer with click-to-expand functionality
-- **Professional Output**: Generates clean, modern HTML/CSS/JS code
-- **Image Optimization**: Processes and optimizes images for web use
+### Core Features
+- **Professional ZXP Extension**: Installs directly into Adobe Bridge as an official extension
+- **Bridge Integration**: Seamlessly works with Adobe Bridge file selection and metadata
+- **Advanced Layouts**: Choose from Grid, Masonry, or Carousel layouts with customizable options
+- **Responsive Design**: Mobile-friendly galleries that work perfectly on all devices
+- **Interactive Lightbox**: Full-screen image viewer with keyboard navigation and touch support
+- **Professional Output**: Generates clean, modern HTML5/CSS3/ES6 code
+
+### Advanced Capabilities
+- **XMP Metadata Extraction**: Automatically extracts titles and descriptions from image metadata
+- **Intelligent Captioning**: Configurable caption sources (Title → Description → Filename fallback)
+- **Image Processing**: Built-in image optimization with rotation support and quality control
+- **Grid Container Options**: Full-size or square aspect ratio containers
+- **Progress Tracking**: Real-time progress dialogs during gallery generation
+- **Batch Processing**: Efficiently handles large image collections
 
 ## Requirements
 
-- Adobe Bridge (any recent version)
-- Adobe ExtendScript Toolkit or similar ExtendScript environment
-- Images in common formats: JPG, PNG, GIF, BMP, TIFF
+- **Adobe Bridge**: CC 2018 or later (Bridge 9+)
+- **Operating System**: Windows 10/11 or macOS 10.14+
+- **ZXP Installation**: Install from Adobe Extension Marketplace or Anastasiy's Extension Manager
+- **Supported Formats**: JPG, JPEG, PNG, GIF, BMP, TIFF, TIF, PSD, PDF
+- **Node.js**: 14.0.0+ (for building from source)
 
 ## Installation
 
-1. Download the `PhotoGalleryGenerator.jsx` file
-2. Place it in your Adobe Bridge Startup Scripts folder:
+### Option 1: Adobe Extension Marketplace (Recommended)
+
+1. **Log in to Creative Cloud (if not already logged in)**
+2. **Browse to [Adobe Marketplace for Creative Cloud](https://exchange.adobe.com/apps/browse/cc?listingType=plugins&page=1&product=KBRG&sort=RELEVANCE)**  and search for "Photo Gallery Generator for Bridge"
+3. **Log in to Creative Cloud (if not already logged in)**
+4. **Click Acquire**
+5. **Restart Adobe Bridge**
+6. The extension adds "Export Photo Gallery" to your **Tools** menu
+
+### Option 2: ZXP Extension
+
+1. **Download the ZXP file** from the [Releases](release/) section
+2. **Install using Anastasiy's Extension Manager:**
+   - Download [Anastasiy's Extension Manager](https://install.anastasiy.com)
+   - Open Anastasiy's Extension Manager and drag the `.zxp` file onto it
+   - Follow the installation prompts
+3. **Restart Adobe Bridge**
+4. The extension adds "Export Photo Gallery" to your **Tools** menu
+
+### Option 3: Manual Installation
+
+1. Download all script files from the `Startup_Script/` folder
+2. Place them in your Bridge Startup Scripts folder:
    - **Windows**: `C:\Users\[Username]\AppData\Roaming\Adobe\CEP\extensions\Bridge\StartupScripts`
    - **Mac**: `~/Library/Application Support/Adobe/CEP/extensions/Bridge/StartupScripts`
-3. Restart Adobe Bridge
-4. The script will automatically add "Export Photo Gallery" to your Tools menu
+3. Maintain the folder structure (include the `lib_photoGalleryGenerator/` subfolder)
+4. Restart Adobe Bridge
+
+### Verification
+- Look for "Export Photo Gallery" in the **Tools** menu
+- You'll see a welcome message on first run
 
 ## Usage
 
@@ -39,10 +75,19 @@ A powerful Adobe ExtendScript that generates standalone HTML photo galleries dir
 2. The script will open a dialog with configuration options
 
 ### Step 3: Configure Gallery Settings
-- **Gallery Type**: Choose between Grid, Masonry, or Carousel layouts
-- **Columns**: Set the number of columns for grid layout
-- **Max Image Size**: Define the maximum pixel dimensions for images
-- **JPEG Quality**: Set compression quality (1-100, higher = better quality)
+- **Gallery Name**: Set a custom name for your gallery
+- **Gallery Layout**: Choose from Grid, Masonry, or Carousel layouts
+- **Grid Container**: Select Full Size or Square aspect ratio (Grid layout only)
+- **Caption Source**: Configure title/description source priority:
+  - Title → Description → Filename (uses XMP metadata when available)
+  - Description → Title → Filename
+  - Filename only
+- **Columns**: Set number of columns (2-6) for Grid and Masonry layouts
+- **Image Settings**: 
+  - Max Image Width: 400-2000px (default: 800px)
+  - Max Image Height: 300-1500px (default: 600px)
+  - JPEG Quality: 1-100% (default: 85%)
+  - PNG Quality: 1-100% (default: 95%)
 
 ### Step 4: Select Output Folder
 1. Click "Browse" to choose where to save the generated gallery
@@ -74,30 +119,60 @@ Output Folder/
 
 ## Gallery Features
 
-### Responsive Grid Layout
-- Automatically adjusts columns based on screen size
-- Mobile-optimized for phones and tablets
-- Clean, modern design with hover effects
+### Layout Options
 
-### Interactive Lightbox
-- Click any image to view it full-screen
-- Dark overlay with close button
-- Click outside image to close
+**Grid Layout**
+- Responsive grid with 2-6 configurable columns
+- Full-size or square container options
+- Automatic mobile adaptation
+- Clean hover effects and animations
 
-### Professional Styling
-- Clean typography and spacing
-- Smooth hover animations
-- Professional color scheme
-- Box shadows and rounded corners
+**Masonry Layout**
+- Pinterest-style variable height layout
+- CSS columns with modern browser support
+- Maintains aspect ratios
+- Break-inside optimization
 
-## Customization
+**Carousel Layout**
+- Full-screen sliding image viewer
+- Navigation arrows and dot indicators
+- Touch/swipe support for mobile
+- Automatic caption display
 
+### Interactive Features
+- **Advanced Lightbox**: Full-screen image viewer with keyboard navigation (arrow keys, ESC)
+- **Touch Support**: Mobile-friendly touch and swipe gestures
+- **Metadata Display**: Shows image titles/descriptions from XMP metadata
+- **Progress Indicators**: Real-time progress during gallery generation
+- **Responsive Design**: Automatically adapts to all screen sizes
+
+### Technical Excellence
+- **Modern Web Standards**: HTML5, CSS3, ES6 JavaScript
+- **Cross-Browser Compatible**: Chrome 60+, Firefox 55+, Safari 12+, Edge 79+
+- **Performance Optimized**: Efficient image loading and rendering
+- **SEO-Friendly**: Semantic HTML structure with proper meta tags
+
+## Advanced Features
+
+### XMP Metadata Integration
+- **Automatic Extraction**: Reads title and description from image XMP metadata
+- **Dublin Core Support**: Uses standard DC namespace properties
+- **Fallback Strategy**: Intelligent fallback to filename when metadata unavailable
+- **Rotation Support**: Respects image rotation from metadata
+
+### Image Processing
+- **Smart Resizing**: Maintains aspect ratios while optimizing for web
+- **Quality Control**: Configurable compression for JPEG and PNG
+- **Format Support**: Handles JPEG, PNG, GIF, BMP, TIFF, PSD, and PDF
+- **Batch Processing**: Efficient handling of large image collections
+- **Progress Tracking**: Real-time progress with file-by-file updates
+
+### Customization
 The generated files are fully customizable:
-
-- **HTML**: Modify structure and content
-- **CSS**: Adjust colors, fonts, spacing, and animations
-- **JavaScript**: Add new features or modify existing behavior
-- **Images**: Replace with your own optimized versions
+- **HTML**: Clean, semantic structure ready for modifications
+- **CSS**: Modern CSS3 with CSS custom properties for easy theming
+- **JavaScript**: Modular ES6 code with clear separation of concerns
+- **Images**: Optimized output files ready for further processing
 
 ## Troubleshooting
 
@@ -119,17 +194,33 @@ The generated files are fully customizable:
 
 ### Performance Tips
 
-- For large galleries (50+ images), consider processing in smaller batches
-- Use appropriate image quality settings (85-90 is usually optimal)
-- Choose reasonable image sizes (800px max is good for most web use)
+- **Large Galleries**: 100+ images process efficiently with progress tracking
+- **Quality Settings**: 85% JPEG quality provides optimal size/quality balance
+- **Image Dimensions**: 800px max width recommended for web galleries
+- **Layout Choice**: Grid layout performs best for large collections
+- **Batch Processing**: Extension handles batch operations automatically
 
 ## Technical Details
 
+### Extension Architecture
+- **Extension Type**: Adobe ZXP extension with manifest
 - **Script Language**: Adobe ExtendScript (ES3/ES4 compatible)
-- **UI Framework**: ScriptUI for all dialogs and interfaces
-- **Output Format**: Standard HTML5, CSS3, and ES6 JavaScript
-- **Image Processing**: File copying with optimization support
-- **Cross-Platform**: Works on Windows and macOS
+- **UI Framework**: ScriptUI for dialogs and progress tracking
+- **XMP Integration**: Adobe XMP Script library for metadata extraction
+- **Cross-Platform**: Full Windows and macOS support
+
+### Output Technology
+- **HTML**: Semantic HTML5 with accessibility features
+- **CSS**: Modern CSS3 with flexbox/grid and custom properties
+- **JavaScript**: Clean ES6 with progressive enhancement
+- **Images**: Intelligent optimization with quality control
+- **File Structure**: Organized output with clear documentation
+
+### Build System
+- **Package Management**: npm with Node.js 14.0.0+
+- **ZXP Creation**: Automated build with digital signing
+- **Development Tools**: Hot reload and debugging support
+- **Distribution**: Signed ZXP packages for easy installation
 
 ## Browser Compatibility
 
@@ -150,11 +241,47 @@ For issues or questions:
 2. Verify your Bridge and ExtendScript versions
 3. Test with a small set of images first
 
+## Development & Building
+
+### Building from Source
+
+```bash
+# Install dependencies
+npm install
+
+# Build ZXP extension
+ZXP_CERT_PASSWORD=your_password npm run build
+
+# Development build with timestamp
+npm run build:dev
+
+# Prepare files without signing
+npm run prepare
+```
+
+### Development Workflow
+1. Modify source files in `Startup_Script/`
+2. Test by copying to Bridge startup folder
+3. Build development ZXP for testing
+4. Create production ZXP for distribution
+
+See [BUILD.md](BUILD.md) for detailed build instructions.
+
 ## Version History
 
-- **v1.0**: Initial release with basic gallery generation
-- Features: Grid layout, lightbox, responsive design, image processing
+- **v1.0.0**: Production release with full ZXP packaging
+  - Features: Grid, Masonry, and Carousel layouts
+  - XMP metadata extraction and intelligent captioning
+  - Advanced image processing with rotation support
+  - Professional ZXP extension with automated build system
+  - Full progress tracking and error handling
+  - Modern HTML5/CSS3/ES6 output with responsive design
 
 ---
 
-**Note**: This script is designed specifically for Adobe Bridge and ExtendScript environments. It will not work in standard web browsers or other applications.
+## Support & Documentation
+
+For detailed installation instructions, see [INSTALLATION.md](INSTALLATION.md).
+For build instructions and development, see [BUILD.md](BUILD.md).
+
+**Note**: This extension is designed specifically for Adobe Bridge and ExtendScript environments. The generated galleries work in all modern web browsers, but the extension itself requires Adobe Bridge to function.
