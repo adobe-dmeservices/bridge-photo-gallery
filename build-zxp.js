@@ -139,6 +139,35 @@ function updateMxiVersion() {
 }
 
 /**
+ * Update version placeholders in JavaScript files
+ */
+function updateJavaScriptVersions() {
+    console.log('🔄 Updating JavaScript file versions...');
+    
+    try {
+        const htmlGeneratorPath = path.join(config.zxpTempDir, 'Startup_Script', 'lib_photoGalleryGenerator', 'htmlGenerator.jsxinc');
+        
+        if (fs.existsSync(htmlGeneratorPath)) {
+            // Read the file
+            let content = fs.readFileSync(htmlGeneratorPath, 'utf8');
+            
+            // Replace version placeholder
+            content = content.replace(/{{VERSION}}/g, config.version);
+            
+            // Write the updated content back
+            fs.writeFileSync(htmlGeneratorPath, content, 'utf8');
+            
+            console.log(`✅ Updated version placeholders to ${config.version} in htmlGenerator.jsxinc`);
+        } else {
+            console.log('⚠️  htmlGenerator.jsxinc not found, skipping version update');
+        }
+    } catch (error) {
+        console.error('❌ Error updating JavaScript versions:', error.message);
+        process.exit(1);
+    }
+}
+
+/**
  * Copy files to zxp-temp directory
  */
 function copyFiles() {
@@ -311,6 +340,9 @@ function main() {
             // Step 4: Update .mxi file version
             updateMxiVersion();
             
+            // Step 5: Update JavaScript file versions
+            updateJavaScriptVersions();
+            
             console.log('✅ Files prepared in zxp-temp directory');
             console.log('💡 To create the ZXP manually, run:');
             console.log(`   "${config.zxpSignCmd}" -sign "${config.zxpTempDir}" "output.zxp" "${config.certificatePath}" "YOUR_PASSWORD"`);
@@ -336,7 +368,10 @@ function main() {
         // Step 5: Update .mxi file version
         updateMxiVersion();
         
-        // Step 6: Create ZXP
+        // Step 6: Update JavaScript file versions
+        updateJavaScriptVersions();
+        
+        // Step 7: Create ZXP
         createZxp();
         
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
