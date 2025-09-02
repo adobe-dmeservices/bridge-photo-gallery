@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<macromedia-extension id="com.adobe.bridgephotogallery" icon="icon.png" name="Photo Gallery Generator for Bridge" requires-restart="true" version="1.0.0">
+<macromedia-extension id="com.adobe.bridgephotogallery" icon="icon.png" name="Photo Gallery Generator for Adobe® Bridge" requires-restart="true" version="1.0.0">
     <author name="Digital Media Services"/>
     <description>
-        <![CDATA[Photo Gallery Generator for Bridge]]>
+        <![CDATA[Photo Gallery Generator for Adobe® Bridge]]>
     </description>
     <ui-access>
-        <![CDATA[Photo Gallery Generator for Bridge is a script that generates a photo gallery from selected images in Bridge. It creates a folder with the images and a HTML file that displays the images in a lightbox gallery. Users can congifure the gallery type, image sizes, and other options.]]>
+        <![CDATA[Photo Gallery Generator for Bridge is a script that generates a photo gallery from selected images in Adobe® Bridge. It creates a folder with the images and a HTML file that displays the images in a lightbox gallery. Users can congifure the gallery type, image sizes, and other options.]]>
     </ui-access>
     <products>
         <product familyname="Bridge" version="9"/>

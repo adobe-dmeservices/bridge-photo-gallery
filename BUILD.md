@@ -62,7 +62,7 @@ zxp-temp/
 │       ├── htmlGenerator.jsxinc      # HTML generation
 │       ├── imageOptimization.jsxinc  # Image processing
 │       └── utilities.jsxinc          # Utility functions
-├── com.adobe.bridgePhotoGallery.mxi  # Extension manifest
+├── com.adobe.bridgephotogallery.mxi  # Extension manifest
 └── icon.png                          # Extension icon
 ```
 
@@ -140,7 +140,7 @@ If you prefer to build manually without the Node.js script:
 2. **Copy files:**
    ```bash
    cp -r Startup_Script zxp-temp/
-   cp com.adobe.bridgePhotoGallery.mxi zxp-temp/
+   cp com.adobe.bridgephotogallery.mxi zxp-temp/
    cp icon.png zxp-temp/
    ```
 

@@ -43,8 +43,8 @@ const filesToCopy = [
         type: 'directory'
     },
     {
-        source: 'com.adobe.bridgePhotoGallery.mxi',
-        dest: 'com.adobe.bridgePhotoGallery.mxi',
+        source: 'com.adobe.bridgephotogallery.mxi',
+        dest: 'com.adobe.bridgephotopallery.mxi',
         type: 'file'
     },
     {
@@ -116,8 +116,8 @@ function updateMxiVersion() {
     console.log('🔄 Updating .mxi file version...');
     
     try {
-        const mxiPath = path.join(config.projectRoot, 'com.adobe.bridgePhotoGallery.mxi');
-        const tempMxiPath = path.join(config.zxpTempDir, 'com.adobe.bridgePhotoGallery.mxi');
+        const mxiPath = path.join(config.projectRoot, 'com.adobe.bridgephotogallery.mxi');
+        const tempMxiPath = path.join(config.zxpTempDir, 'com.adobe.bridgephotogallery.mxi');
         
         // Read the original .mxi file
         let mxiContent = fs.readFileSync(mxiPath, 'utf8');
@@ -225,7 +225,7 @@ function copyFiles() {
             const destPath = path.join(config.zxpTempDir, item.dest);
             
             // Skip .mxi file - we'll handle it separately with version updating
-            if (item.source === 'com.adobe.bridgePhotoGallery.mxi') {
+            if (item.source === 'com.adobe.bridgephotogallery.mxi') {
                 console.log(`  ⏭️  Skipping ${item.source} (will be processed separately with version update)`);
                 return;
             }
