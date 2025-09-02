@@ -1,0 +1,28 @@
+{
+  "name": "bridge-photo-gallery",
+  "version": "1.0.0",
+  "description": "Adobe Bridge ExtendScript extension for generating responsive photo galleries",
+  "main": "Startup_Script/PhotoGalleryGenerator.jsx",
+  "scripts": {
+    "build": "node build-zxp.js",
+    "build:dev": "node build-zxp.js --dev",
+    "clean": "node build-zxp.js --clean",
+    "prepare": "node build-zxp.js --prepare-only"
+  },
+  "keywords": [
+    "adobe",
+    "bridge",
+    "extendscript",
+    "photo-gallery",
+    "zxp"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "fs-extra": "^11.1.1",
+    "path": "^0.12.7"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
