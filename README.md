@@ -1,4 +1,4 @@
-# Bridge Photo Gallery Generator
+# Adobe® Bridge Photo Gallery Generator
 
 A professional Adobe Bridge extension that generates responsive HTML photo galleries directly from your Bridge workspace. This ZXP extension allows users to select images from Bridge, configure advanced layout options, and generate complete web galleries with HTML, CSS, JavaScript, and optimized images with intelligent metadata extraction.
 
@@ -68,7 +68,7 @@ A professional Adobe Bridge extension that generates responsive HTML photo galle
 1. Open Adobe Bridge
 2. Navigate to the folder containing your images
 3. Select one or more image files (Ctrl/Cmd + Click for multiple)
-4. Ensure the images are in supported formats (JPG, PNG, GIF, BMP, TIFF)
+4. Ensure the images are in supported formats (JPG, JPEG, PNG, GIF, BMP, TIFF, TIF, PSD, PDF)
 
 ### Step 2: Run the Script
 1. In Bridge, go to **Tools > Export Photo Gallery**
