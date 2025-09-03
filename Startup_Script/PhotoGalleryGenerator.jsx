@@ -38,8 +38,8 @@ function initializePhotoGalleryGenerator() {
 
         // Show welcome message on first run
         if (!isInitialized()) {
-            showWelcomeMessage();
             setInitialized();
+            showWelcomeMessage();
         }
 
     } catch (error) {

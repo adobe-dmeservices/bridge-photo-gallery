@@ -1,6 +1,6 @@
 {
   "name": "bridge-photo-gallery",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Adobe Bridge ExtendScript extension for generating responsive photo galleries",
   "main": "Startup_Script/PhotoGalleryGenerator.jsx",
   "scripts": {
