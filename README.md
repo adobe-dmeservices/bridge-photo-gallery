@@ -33,7 +33,7 @@ A professional Adobe Bridge extension that generates responsive HTML photo galle
 ### Option 1: Adobe Extension Marketplace (Recommended)
 
 1. **Log in to Creative Cloud (if not already logged in)**
-2. **Browse to [Adobe Marketplace for Creative Cloud](https://exchange.adobe.com/apps/browse/cc?listingType=plugins&page=1&product=KBRG&sort=RELEVANCE)**  and search for "Photo Gallery Generator for Bridge"
+2. **Browse to [Adobe Marketplace for Creative Cloud](https://exchange.adobe.com/apps/browse/cc?listingType=plugins&page=1&product=KBRG&sort=RELEVANCE)**  and search for "Photo Gallery Generator for Bridge" or [go to the extension directly via this link](https://exchange.adobe.com/apps/cc/204093/photo-gallery-exporter-for-adobe-bridge). 
 3. **Log in to Creative Cloud (if not already logged in)**
 4. **Click Acquire**
 5. **Restart Adobe Bridge**
